@@ -342,21 +342,32 @@ core::arch::global_asm!(
 
     .type _el1_start, %function
     _el1_start:
-        // Set stack pointer (as the top) and mask interrupts for for FIQ mode (Mode 0x11)
+        // Set up stacks.
         ldr     r0, =_stack_top
-        msr     cpsr, {fiq_mode}
+        // Set stack pointer (right after) and mask interrupts for for UND mode (Mode 0x1B)
+        msr     cpsr, {und_mode}
         mov     sp, r0
-        ldr     r1, =_fiq_stack_size
+        ldr     r1, =_und_stack_size
+        sub     r0, r0, r1
+        // Set stack pointer (right after) and mask interrupts for for SVC mode (Mode 0x13)
+        msr     cpsr, {svc_mode}
+        mov     sp, r0
+        ldr     r1, =_svc_stack_size
+        sub     r0, r0, r1
+        // Set stack pointer (right after) and mask interrupts for for ABT mode (Mode 0x17)
+        msr     cpsr, {abt_mode}
+        mov     sp, r0
+        ldr     r1, =_abt_stack_size
         sub     r0, r0, r1
         // Set stack pointer (right after) and mask interrupts for for IRQ mode (Mode 0x12)
         msr     cpsr, {irq_mode}
         mov     sp, r0
         ldr     r1, =_irq_stack_size
         sub     r0, r0, r1
-        // Set stack pointer (right after) and mask interrupts for for SVC mode (Mode 0x13)
-        msr     cpsr, {svc_mode}
+        // Set stack pointer (right after) and mask interrupts for for FIQ mode (Mode 0x11)
+        msr     cpsr, {fiq_mode}
         mov     sp, r0
-        ldr     r1, =_svc_stack_size
+        ldr     r1, =_fiq_stack_size
         sub     r0, r0, r1
         // Set stack pointer (right after) and mask interrupts for for System mode (Mode 0x1F)
         msr     cpsr, {sys_mode}
@@ -395,6 +406,27 @@ core::arch::global_asm!(
         b       .
     .size _el1_start, . - _el1_start
     "#,
+    und_mode = const {
+        Cpsr::new_with_raw_value(0)
+            .with_mode(ProcessorMode::Und)
+            .with_i(true)
+            .with_f(true)
+            .raw_value()
+    },
+    svc_mode = const {
+        Cpsr::new_with_raw_value(0)
+            .with_mode(ProcessorMode::Svc)
+            .with_i(true)
+            .with_f(true)
+            .raw_value()
+    },
+    abt_mode = const {
+        Cpsr::new_with_raw_value(0)
+            .with_mode(ProcessorMode::Abt)
+            .with_i(true)
+            .with_f(true)
+            .raw_value()
+    },
     fiq_mode = const {
         Cpsr::new_with_raw_value(0)
             .with_mode(ProcessorMode::Fiq)
@@ -405,13 +437,6 @@ core::arch::global_asm!(
     irq_mode = const {
         Cpsr::new_with_raw_value(0)
             .with_mode(ProcessorMode::Irq)
-            .with_i(true)
-            .with_f(true)
-            .raw_value()
-    },
-    svc_mode = const {
-        Cpsr::new_with_raw_value(0)
-            .with_mode(ProcessorMode::Svc)
             .with_i(true)
             .with_f(true)
             .raw_value()

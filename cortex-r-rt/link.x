@@ -78,13 +78,19 @@ and a FIQ stack, plus the remainder is our system stack.
 You must keep _stack_top and the stack sizes aligned to eight byte boundaries.
 */
 PROVIDE(_stack_top = ORIGIN(DATA) + LENGTH(DATA));
-PROVIDE(_fiq_stack_size = 0x100);
+PROVIDE(_fiq_stack_size = 0x400);
 PROVIDE(_irq_stack_size = 0x1000);
+PROVIDE(_abt_stack_size = 0x400);
+PROVIDE(_und_stack_size = 0x400);
 PROVIDE(_svc_stack_size = 0x1000);
 
 ASSERT(_stack_top % 8 == 0, "ERROR(cortex-r-rt): top of stack is not 8-byte aligned");
 ASSERT(_fiq_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of FIQ stack is not 8-byte aligned");
 ASSERT(_irq_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of IRQ stack is not 8-byte aligned");
+ASSERT(_fiq_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of FIQ stack is not 8-byte aligned");
+ASSERT(_abt_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of ABT stack is not 8-byte aligned");
+ASSERT(_und_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of UND stack is not 8-byte aligned");
+ASSERT(_svc_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of SVC stack is not 8-byte aligned");
 
 PROVIDE(_asm_undefined_handler =_asm_default_handler);
 PROVIDE(_asm_prefetch_handler  =_asm_default_handler);
