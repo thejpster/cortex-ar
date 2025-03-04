@@ -18,7 +18,6 @@ pub extern "C" fn kmain() {
 }
 
 /// Let's test some timers!
-#[export_name = "main"]
 fn main() {
     use cortex_ar::generic_timer::{El1PhysicalTimer, El1VirtualTimer, GenericTimer};
     let cntfrq = cortex_ar::register::Cntfrq::read().0;

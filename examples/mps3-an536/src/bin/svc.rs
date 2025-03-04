@@ -19,7 +19,6 @@ pub extern "C" fn kmain() {
 /// The main function of our Rust application.
 ///
 /// Called by [`kmain`].
-#[export_name = "main"]
 pub fn main() -> ! {
     let x = 1;
     let y = x + 1;

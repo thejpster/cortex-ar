@@ -31,7 +31,6 @@ pub extern "C" fn kmain() {
 /// The main function of our Rust application.
 ///
 /// Called by [`kmain`].
-#[export_name = "main"]
 fn main() -> ! {
     // Get the GIC address by reading CBAR
     let periphbase = cortex_ar::register::ImpCbar::read().periphbase();

@@ -19,7 +19,6 @@ pub extern "C" fn kmain() {
 /// The entry-point to the Rust application.
 ///
 /// Called by [`kmain`].
-#[export_name = "main"]
 pub fn main() -> ! {
     chip_info();
     #[cfg(arm_architecture = "v7-r")]
