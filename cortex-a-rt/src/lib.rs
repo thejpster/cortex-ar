@@ -167,34 +167,6 @@ macro_rules! save_context {
     };
 }
 
-/// This macro expands to code for saving context on entry to an exception
-/// handler.
-///
-/// It should match `restore_context!`.
-#[cfg(all(
-    any(target_abi = "eabihf", feature = "eabi-fpu"),
-    not(feature = "vfp-dp")
-))]
-macro_rules! save_context {
-    () => {
-        r#"
-        // save preserved registers (and gives us some working area)
-        push    {{r0-r3}}
-        // save FPU context
-        vpush   {{d0-d7}}
-        vmrs    r0, FPSCR
-        vmrs    r1, FPEXC
-        push    {{r0-r1}}
-        // align SP down to eight byte boundary
-        mov     r0, sp
-        and     r0, r0, 7
-        sub     sp, r0
-        // push alignment amount, and final preserved register
-        push    {{r0, r12}}
-        "#
-    };
-}
-
 /// This macro expands to code for restoring context on exit from an exception
 /// handler.
 ///
@@ -217,7 +189,10 @@ macro_rules! restore_context {
 /// handler.
 ///
 /// It should match `restore_context!`.
-#[cfg(all(any(target_abi = "eabihf", feature = "eabi-fpu"), feature = "vfp-dp"))]
+#[cfg(all(
+    any(target_abi = "eabihf", feature = "eabi-fpu"),
+    not(feature = "vfp-dp")
+))]
 macro_rules! save_context {
     () => {
         r#"
@@ -225,7 +200,6 @@ macro_rules! save_context {
         push    {{r0-r3}}
         // save FPU context
         vpush   {{d0-d7}}
-        vpush   {{d16-d31}}
         vmrs    r0, FPSCR
         vmrs    r1, FPEXC
         push    {{r0-r1}}
@@ -261,6 +235,32 @@ macro_rules! restore_context {
         vpop    {{d0-d7}}
         // restore more preserved registers
         pop     {{r0-r3}}
+        "#
+    };
+}
+
+/// This macro expands to code for saving context on entry to an exception
+/// handler.
+///
+/// It should match `restore_context!`.
+#[cfg(all(any(target_abi = "eabihf", feature = "eabi-fpu"), feature = "vfp-dp"))]
+macro_rules! save_context {
+    () => {
+        r#"
+        // save preserved registers (and gives us some working area)
+        push    {{r0-r3}}
+        // save FPU context
+        vpush   {{d0-d7}}
+        vpush   {{d16-d31}}
+        vmrs    r0, FPSCR
+        vmrs    r1, FPEXC
+        push    {{r0-r1}}
+        // align SP down to eight byte boundary
+        mov     r0, sp
+        and     r0, r0, 7
+        sub     sp, r0
+        // push alignment amount, and final preserved register
+        push    {{r0, r12}}
         "#
     };
 }

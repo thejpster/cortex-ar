@@ -157,6 +157,24 @@ macro_rules! save_context {
     };
 }
 
+/// This macro expands to code for restoring context on exit from an exception
+/// handler.
+///
+/// It should match `save_context!`.
+#[cfg(not(any(target_abi = "eabihf", feature = "eabi-fpu")))]
+macro_rules! restore_context {
+    () => {
+        r#"
+        // restore alignment amount, and preserved register
+        pop     {{r0, r12}}
+        // restore pre-alignment SP
+        add     sp, r0
+        // restore more preserved registers
+        pop     {{r0-r3}}
+        "#
+    };
+}
+
 /// This macro expands to code for saving context on entry to an exception
 /// handler.
 ///
@@ -178,24 +196,6 @@ macro_rules! save_context {
         sub     sp, r0
         // push alignment amount, and final preserved register
         push    {{r0, r12}}
-        "#
-    };
-}
-
-/// This macro expands to code for restoring context on exit from an exception
-/// handler.
-///
-/// It should match `save_context!`.
-#[cfg(not(any(target_abi = "eabihf", feature = "eabi-fpu")))]
-macro_rules! restore_context {
-    () => {
-        r#"
-        // restore alignment amount, and preserved register
-        pop     {{r0, r12}}
-        // restore pre-alignment SP
-        add     sp, r0
-        // restore more preserved registers
-        pop     {{r0-r3}}
         "#
     };
 }
