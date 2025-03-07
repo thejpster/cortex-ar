@@ -3,6 +3,7 @@
 use crate::register::{SysReg, SysRegRead, SysRegWrite};
 
 /// IFAR (*Instruction Fault Address Register*)
+#[derive(Debug)]
 pub struct Ifar(pub u32);
 impl SysReg for Ifar {
     const CP: u32 = 15;

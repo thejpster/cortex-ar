@@ -1,4 +1,4 @@
-//! Run-time support for Arm Cortex-R
+//! # Run-time support for Arm Cortex-R
 //!
 //! This library implements a simple Arm vector table, suitable for getting into
 //! a Rust application running in System Mode.
@@ -12,44 +12,115 @@
 //!
 //! We assume the following global symbols exist:
 //!
-//! * `__start` - a Reset handler. Our linker script PROVIDEs a default function
-//!   at `_default_start` but you can override it.
+//! ### Constants
+//!
 //! * `_stack_top` - the address of the top of some region of RAM that we can
 //!   use as stack space, with eight-byte alignment. Our linker script PROVIDEs
 //!   a default pointing at the top of RAM.
+//! * `__sbss` - the start of zero-initialised data in RAM. Must be 4-byte
+//!   aligned.
+//! * `__ebss` - the end of zero-initialised data in RAM. Must be 4-byte
+//!   aligned.
 //! * `_fiq_stack_size` - the number of bytes to be reserved for stack space
 //!   when in FIQ mode; must be a multiple of 8.
 //! * `_irq_stack_size` - the number of bytes to be reserved for stack space
 //!   when in FIQ mode; must be a multiple of 8.
 //! * `_svc_stack_size` - the number of bytes to be reserved for stack space
-//!   when in SVC mode; must be a multiple of 8.F
+//!   when in SVC mode; must be a multiple of 8.
+//! * `__sdata` - the start of initialised data in RAM. Must be 4-byte aligned.
+//! * `__edata` - the end of initialised data in RAM. Must be 4-byte aligned.
+//! * `__sidata` - the start of the initialisation values for data, in read-only
+//!   memory. Must be 4-byte aligned.
+//!
+//! ### Functions
+//!
+//! * `kmain` - the `extern "C"` entry point to your application.
+//!
+//!   Expected prototype:
+//!
+//!   ```rust
+//!   #[unsafe(no_mangle)]
+//!   extern "C" fn kmain() -> !;
+//!   ```
+//!
 //! * `_svc_handler` - an `extern "C"` function to call when an SVC Exception
 //!   occurs. Our linker script PROVIDEs a default function at
 //!   `_default_handler` but you can override it.
+//!
+//!   Expected prototype:
+//!
+//!   ```rust
+//!   #[unsafe(no_mangle)]
+//!   extern "C" fn _svc_handler(svc: u32);
+//!   ```
+//!
 //! * `_irq_handler` - an `extern "C"` function to call when an Interrupt
 //!   occurs. Our linker script PROVIDEs a default function at
 //!   `_default_handler` but you can override it.
+//!
+//!   Expected prototype:
+//!
+//!   ```rust
+//!   #[unsafe(no_mangle)]
+//!   extern "C" fn _irq_handler();
+//!   ```
+//!
+//! * `_undefined_handler` - an `extern "C"` function to call when an Undefined Exception
+//!   occurs. Our linker script PROVIDEs a default function at
+//!   `_default_handler` but you can override it. It will be called by the
+//!   `_asm_default_undefined_handler` unless that function is overriden as well.
+//!
+//!   Expected prototype:
+//!
+//!   ```rust
+//!   #[unsafe(no_mangle)]
+//!   extern "C" fn _undefined_handler(faulting_instruction: u32);
+//!   ```
+//!
+//! * `_abort_handler` - an `extern "C"` function to call when a Data Abort Exception
+//!   occurs. Our linker script PROVIDEs a default function at
+//!   `_default_handler` but you can override it. It will be called by the
+//!   `_asm_default_abort_handler` unless that function is overriden as well.
+//!
+//!   Expected prototype:
+//!
+//!   ```rust
+//!   #[unsafe(no_mangle)]
+//!   extern "C" fn _abort_handler(faulting_instruction: u32);
+//!   ```
+//!
+//! * `_prefetch_handler` - an `extern "C"` function to call when a Prefetch Abort Exception
+//!   occurs. Our linker script PROVIDEs a default function at
+//!   `_default_handler` but you can override it. It will be called by the
+//!   `_asm_default_prefetch_handler` unless that function is overriden as well.
+//!
+//!   Expected prototype:
+//!
+//!   ```rust
+//!   #[unsafe(no_mangle)]
+//!   extern "C" fn _prefetch_handler(faulting_instruction: u32);
+//!   ```
+//!
+//! ### ASM functions
+//!
+//! * `__start` - a Reset handler. Our linker script PROVIDEs a default function
+//!   at `_default_start` but you can override it. Most Cortex-A SoCs require
+//!   a chip specific startup for tasks like MMU initialization or chip specific
+//!   initialization routines.
 //! * `_asm_fiq_handler` - a naked function to call when a Fast Interrupt
 //!   Request (FIQ) occurs. Our linker script PROVIDEs a default function at
 //!   `_asm_default_fiq_handler` but you can override it.
 //! * `_asm_undefined_handler` - a naked function to call when an Undefined
 //!   Exception occurs. Our linker script PROVIDEs a default function at
-//!   `_asm_default_handler` but you can override it.
+//!   `_asm_default_undefined_handler` but you can override it.
 //! * `_asm_prefetch_handler` - a naked function to call when an Prefetch
 //!   Exception occurs. Our linker script PROVIDEs a default function at
-//!   `_asm_default_handler` but you can override it.
+//!   `_asm_default_prefetch_handler` but you can override it. The provided default
+//!   handler will perform an exception return to the faulting address.
 //! * `_asm_abort_handler` - a naked function to call when an Abort Exception
 //!   occurs. Our linker script PROVIDEs a default function at
-//!   `_asm_default_handler` but you can override it.
-//! * `kmain` - the `extern "C"` entry point to your application.
-//! * `__sdata` - the start of initialised data in RAM. Must be 4-byte aligned.
-//! * `__edata` - the end of initialised data in RAM. Must be 4-byte aligned.
-//! * `__sidata` - the start of the initialisation values for data, in read-only
-//!   memory. Must be 4-byte aligned.
-//! * `__sbss` - the start of zero-initialised data in RAM. Must be 4-byte
-//!   aligned.
-//! * `__ebss` - the end of zero-initialised data in RAM. Must be 4-byte
-//!   aligned.
+//!   `_asm_default_abort_handler` but you can override it. The provided default handler
+//!   will perform an exception return to the faulting address.
 //!
 //! On start-up, the memory between `__sbss` and `__ebss` is zeroed, and the
 //! memory between `__sdata` and `__edata` is initialised with the data found at
@@ -82,10 +153,18 @@
 //! If our start-up routine doesn't work for you (e.g. if you have to initialise
 //! your memory controller before you touch RAM), supply your own `_start`
 //! function (but feel free to call our `_default_start` as part of it).
+//!
+//! ## Examples
+//!
+//! You can find example code using QEMU inside the
+//! [project repository](https://github.com/rust-embedded/cortex-ar/tree/main/examples)
 
 #![no_std]
 
-use cortex_ar::register::{cpsr::ProcessorMode, Cpsr};
+use cortex_ar::{
+    asm::nop,
+    register::{cpsr::ProcessorMode, Cpsr},
+};
 
 #[cfg(arm_architecture = "v8-r")]
 use cortex_ar::register::Hactlr;
@@ -96,8 +175,9 @@ use cortex_ar::register::Hactlr;
 /// file hasn't been over-ridden.
 #[no_mangle]
 pub extern "C" fn _default_handler() {
-    semihosting::eprintln!("Unhandled exception!");
-    semihosting::process::abort();
+    loop {
+        nop();
+    }
 }
 
 // The Interrupt Vector Table, and some default assembly-language handler.
@@ -273,9 +353,98 @@ core::arch::global_asm!(
     r#"
         rfefd   sp!
     .size _asm_irq_handler, . - _asm_irq_handler
+
+
+    // Called from the vector table when we have an undefined exception.
+    // Saves state and calls a C-compatible handler like
+    // `extern "C" fn _undefined_handler();`
+    .global _asm_default_undefined_handler
+    .type _asm_default_undefined_handler, %function
+    _asm_default_undefined_handler:
+        // First adjust LR for two purposes: Passing the faulting instruction to the C handler,
+        // and to return to the failing instruction after the C handler returns.
+        // Load processor status
+        mrs      r4, cpsr
+        // Occurred in Thumb state?
+        tst      r4, {t_bit}
+        // If not in Thumb mode, branch to not_thumb
+        beq     not_thumb
+        subs	lr, lr, #2
+        b       done
+not_thumb:
+        // Subtract 4 from LR (ARM mode)
+        subs    lr, lr, #4
+done:
+        // state save from compiled code
+        srsfd   sp!, {und_mode}
+    "#,
+    save_context!(),
+    r#"
+        // Pass the faulting instruction address to the handler.
+        mov     r0, lr
+        // call C handler
+        bl      _undefined_handler
+    "#,
+    restore_context!(),
+    r#"
+        // Return to the failing instruction which is the recommended approach by ARM.
+        rfefd   sp!
+    .size _asm_default_undefined_handler, . - _asm_default_undefined_handler
+
+
+    // Called from the vector table when we have an undefined exception.
+    // Saves state and calls a C-compatible handler like
+    // `extern "C" fn _prefetch_handler();`
+    .global _asm_default_prefetch_handler
+    .type _asm_default_prefetch_handler, %function
+    _asm_default_prefetch_handler:
+        // Subtract 4 from the stored LR, see p.1212 of the ARMv7-A architecture manual.
+        subs	lr, lr, #4
+        // state save from compiled code
+        srsfd   sp!, {abt_mode}
+    "#,
+    save_context!(),
+    r#"
+        // Pass the faulting instruction address to the handler.
+        mov r0, lr
+        // call C handler
+        bl      _prefetch_handler
+    "#,
+    restore_context!(),
+    r#"
+        // Return to the failing instruction which is the recommended approach by ARM.
+        rfefd   sp!
+    .size _asm_default_prefetch_handler, . - _asm_default_prefetch_handler
+
+
+    // Called from the vector table when we have an undefined exception.
+    // Saves state and calls a C-compatible handler like
+    // `extern "C" fn _abort_handler();`
+    .global _asm_default_abort_handler
+    .type _asm_default_abort_handler, %function
+    _asm_default_abort_handler:
+        // Subtract 8 from the stored LR, see p.1214 of the ARMv7-A architecture manual.
+        subs	lr, lr, #8
+        // state save from compiled code
+        srsfd   sp!, {abt_mode}
+    "#,
+    save_context!(),
+    r#"
+        // Pass the faulting instruction address to the handler.
+        mov     r0, lr
+        // call C handler
+        bl      _abort_handler
+    "#,
+    restore_context!(),
+    r#"
+        // Return to the failing instruction which is the recommended approach by ARM.
+        rfefd   sp!
+    .size _asm_default_abort_handler, . - _asm_default_abort_handler
     "#,
     svc_mode = const ProcessorMode::Svc as u8,
     irq_mode = const ProcessorMode::Irq as u8,
+    und_mode = const ProcessorMode::Und as u8,
+    abt_mode = const ProcessorMode::Abt as u8,
     t_bit = const {
         Cpsr::new_with_raw_value(0)
             .with_t(true)
