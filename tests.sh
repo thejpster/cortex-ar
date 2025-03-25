@@ -27,13 +27,13 @@ for binary in hello registers svc; do
 done
 
 # armv7r-none-eabihf tests
-for binary in hello registers svc; do
+for binary in hello registers svc undef-exception prefetch-exception abt-exception; do
     cargo run ${versatile_ab_cargo} --target=armv7r-none-eabihf --bin $binary | tee ./target/$binary-armv7r-none-eabihf.out
     diff ./examples/versatileab/reference/$binary-armv7r-none-eabihf.out ./target/$binary-armv7r-none-eabihf.out || fail $binary "armv7r-none-eabihf"
 done
 
 # armv7a-none-eabi tests
-for binary in hello registers svc; do
+for binary in hello registers svc undef-exception prefetch-exception abt-exception; do
     cargo run ${versatile_ab_cargo} --target=armv7a-none-eabi --bin $binary | tee ./target/$binary-armv7a-none-eabi.out
     diff ./examples/versatileab/reference/$binary-armv7a-none-eabi.out ./target/$binary-armv7a-none-eabi.out || fail $binary "armv7a-none-eabi"
 done

@@ -96,6 +96,10 @@ PROVIDE(_asm_undefined_handler =_asm_default_handler);
 PROVIDE(_asm_prefetch_handler  =_asm_default_handler);
 PROVIDE(_asm_abort_handler     =_asm_default_handler);
 PROVIDE(_asm_fiq_handler       =_asm_default_fiq_handler);
+
+PROVIDE(_undefined_handler     =_default_handler);
+PROVIDE(_abort_handler         =_default_handler);
+PROVIDE(_prefetch_handler      =_default_handler);
 PROVIDE(_irq_handler           =_default_handler);
 PROVIDE(_svc_handler           =_default_handler);
 PROVIDE(_start                 =_default_start);

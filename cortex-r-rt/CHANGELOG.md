@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## Added
 
 - Added ABT und UND mode stack setup.
+- Default exception handlers for undefined, prefetch and data abort exceptions
+
+## Changed
+
+- Default Rust exception handler is now an empty permanent loop instead of a semihosting exit.
 
 ## [v0.1.0]
 
