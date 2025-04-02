@@ -8,7 +8,13 @@ use versatileab as _;
 
 use semihosting::println;
 
-versatileab::entry_point!();
+/// The entry-point to the Rust application.
+///
+/// It is called by the start-up.
+#[no_mangle]
+pub extern "C" fn kmain() -> ! {
+    main();
+}
 
 /// The main function of our Rust application.
 #[export_name = "main"]
