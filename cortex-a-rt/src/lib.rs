@@ -5,6 +5,13 @@
 //! Usually, most Cortex-A based systems will require chip specific start-up code, so the
 //! start-up method can over overriden.
 //!
+//! The default startup routine provided by this crate does not include any special handling
+//! for multi-core support because this is oftentimes implementation defined and the exact
+//! handling depends on the specific chip in use. Many implementations only
+//! run the startup routine with one core and will keep other cores in reset until they are woken
+//! up by an implementation specific mechanism. For other implementations where multi-core
+//! specific startup adaptions are necessary, the startup routine can be overwritten by the user.
+//!
 //! ## Features
 //!
 //! - `vfp-dp`: Enables support for the double-precision VFP floating point support. If your target
@@ -44,14 +51,13 @@
 //!
 //! ### Functions
 //!
-//! * `boot_core` - the `extern "C"` entry point to your application. The CPU ID
-//!   will be passed as the first argument to this function.
+//! * `kmain` - the `extern "C"` entry point to your application.
 //!
 //!   Expected prototype:
 //!
 //!   ```rust
 //!   #[unsafe(no_mangle)]
-//!   extern "C" fn boot_core(cpu_id: u32) -> !;
+//!   extern "C" fn kmain() -> !;
 //!   ```
 //!
 //! * `_svc_handler` - an `extern "C"` function to call when an SVC Exception
@@ -141,7 +147,7 @@
 //!
 //! * `_vector_table` - the start of the interrupt vector table
 //! * `_default_start` - the default Reset handler, that sets up some stacks and
-//!   calls an `extern "C"` function called `boot_core`.
+//!   calls an `extern "C"` function called `kmain`.
 //! * `_asm_default_fiq_handler` - an FIQ handler that just spins
 //! * `_asm_default_handler` - an exception handler that just spins
 //! * `_asm_svc_handler` - assembly language trampoline for SVC Exceptions that
@@ -543,7 +549,7 @@ macro_rules! fpu_enable {
 
 // Default start-up code for Armv7-A
 //
-// We set up our stacks and `boot_core` in system mode.
+// We set up our stacks and `kmain` in system mode.
 core::arch::global_asm!(
     r#"
     .section .text.startup
@@ -552,25 +558,6 @@ core::arch::global_asm!(
     .global _default_start
     .type _default_start, %function
     _default_start:
-
-        // only allow cpu0 through for initialization
-        // Read MPIDR
-	      mrc	p15,0,r1,c0,c0,5
-        // Extract CPU ID bits. For single-core systems, this should always be 0
-	      and	r1, r1, #0x3
-        cmp	r1, #0
-	      beq initialize
-    wait_loop:
-        wfe
-        // When Core 0 emits a SEV, the other cores will wake up.
-        // Load CPU ID, we are CPU0
-	      mrc	p15,0,r0,c0,c0,5
-        // Extract CPU ID bits.
-	      and	r0, r0, #0x3
-        bl      boot_core
-        // Should never returns, loop permanently here.
-        b .
-    initialize:
         // Set up stacks.
         ldr     r0, =_stack_top
         // Set stack pointer (right after) and mask interrupts for for UND mode (Mode 0x1B)
@@ -631,9 +618,7 @@ core::arch::global_asm!(
         b       0b
     1:
         // Jump to application
-        // Load CPU ID, we are CPU0
-        ldr    r0, =0x0
-        bl      boot_core
+        bl      kmain
         // In case the application returns, loop forever
         b       .
     .size _default_start, . - _default_start
