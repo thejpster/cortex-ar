@@ -6,6 +6,8 @@
 rustup target add armv7r-none-eabi
 rustup target add armv7r-none-eabihf
 rustup target add armv7a-none-eabi
+rustup toolchain add nightly
+rustup component add rust-src --toolchain=nightly
 
 FAILURE=0
 
@@ -19,6 +21,7 @@ fail() {
 mkdir -p ./target
 
 versatile_ab_cargo="--manifest-path examples/versatileab/Cargo.toml"
+mps3_an536_cargo="--manifest-path examples/mps3-an536/Cargo.toml"
 
 # armv7r-none-eabi tests
 for binary in hello registers svc; do
@@ -38,12 +41,15 @@ for binary in hello registers svc undef-exception prefetch-exception abt-excepti
     diff ./examples/versatileab/reference/$binary-armv7a-none-eabi.out ./target/$binary-armv7a-none-eabi.out || fail $binary "armv7a-none-eabi"
 done
 
+# These tests only run on QEMU 9 or higher.
 # Ubuntu 24.04 supplies QEMU 8, which doesn't support the machine we have configured for this target
-# # armv8r-none-eabihf tests
-# for binary in hello registers svc gic; do
-#     cargo +nightly run --target=armv8r-none-eabihf --bin $binary --features=gic -Zbuild-std=core | tee ./target/$binary-armv8r-none-eabihf.out
-#     diff ./cortex-r-examples/reference/$binary-armv8r-none-eabihf.out ./target/$binary-armv8r-none-eabihf.out || fail $binary "armv8r-none-eabihf"
-# done
+if qemu-system-arm --version | grep "version 9"; then
+    # armv8r-none-eabihf tests
+    for binary in hello registers svc gic generic_timer; do
+        cargo +nightly run ${mps3_an536_cargo} --target=armv8r-none-eabihf --bin $binary --features=gic -Zbuild-std=core | tee ./target/$binary-armv8r-none-eabihf.out
+    diff ./examples/mps3-an536/reference/$binary-armv8r-none-eabihf.out ./target/$binary-armv8r-none-eabihf.out || fail $binary "armv8r-none-eabihf"
+    done
+fi
 
 if [ "$FAILURE" == "1" ]; then
     echo "***************************************************"

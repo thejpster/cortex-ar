@@ -41,14 +41,13 @@ fn main() {
         }
 
         let now = timer.counter();
-        println!("{} is now: {}", name, now);
         println!("Waiting for {} {} ticks to count up...", delay_ticks, name);
         timer.counter_compare_set(now + delay_ticks as u64);
         timer.enable(true);
         while !timer.interrupt_status() {
             core::hint::spin_loop();
         }
-        println!("Matched! {} count now {}", name, timer.counter());
+        println!("Matched! {}", name);
 
         println!(
             "Waiting for {} {} ticks to count down...",
@@ -58,10 +57,6 @@ fn main() {
         while !timer.interrupt_status() {
             core::hint::spin_loop();
         }
-        println!(
-            "{} countdown hit zero! (and is now {})",
-            name,
-            timer.countdown() as i32
-        );
+        println!("{} countdown hit zero!", name,);
     }
 }
