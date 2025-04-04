@@ -76,6 +76,7 @@ remainder is our system mode stack.
 You must keep _stack_top and the stack sizes aligned to eight byte boundaries.
 */
 PROVIDE(_stack_top = ORIGIN(DATA) + LENGTH(DATA));
+PROVIDE(_hyp_stack_size = 0x400);
 PROVIDE(_und_stack_size = 0x400);
 PROVIDE(_svc_stack_size = 0x400);
 PROVIDE(_abt_stack_size = 0x400);
