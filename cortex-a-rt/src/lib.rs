@@ -91,7 +91,7 @@
 //!
 //!   ```rust
 //!   #[unsafe(no_mangle)]
-//!   extern "C" fn _undefined_handler(faulting_instruction: u32);
+//!   extern "C" fn _undefined_handler(addr: usize);
 //!   ```
 //!
 //! * `_abort_handler` - an `extern "C"` function to call when a Data Abort Exception
@@ -103,7 +103,7 @@
 //!
 //!   ```rust
 //!   #[unsafe(no_mangle)]
-//!   extern "C" fn _abort_handler(faulting_instruction: u32);
+//!   extern "C" fn _abort_handler(addr: usize);
 //!   ```
 //!
 //! * `_prefetch_handler` - an `extern "C"` function to call when a Prefetch Abort Exception
@@ -115,7 +115,7 @@
 //!
 //!   ```rust
 //!   #[unsafe(no_mangle)]
-//!   extern "C" fn _prefetch_handler(faulting_instruction: u32);
+//!   extern "C" fn _prefetch_handler(addr: usize);
 //!   ```
 //!
 //! ### ASM functions
@@ -130,7 +130,7 @@
 //! * `_asm_undefined_handler` - a naked function to call when an Undefined
 //!   Exception occurs. Our linker script PROVIDEs a default function at
 //!   `_asm_default_undefined_handler` but you can override it.
-//! * `_asm_prefetch_handler` - a naked function to call when an Prefetch
+//! * `_asm_prefetch_handler` - a naked function to call when a Prefetch
 //!   Exception occurs. Our linker script PROVIDEs a default function at
 //!   `_asm_default_prefetch_handler` but you can override it. The provided default
 //!   handler will perform an exception return to the faulting address.
@@ -381,7 +381,7 @@ core::arch::global_asm!(
 
     // Called from the vector table when we have an software interrupt.
     // Saves state and calls a C-compatible handler like
-    // `extern "C" fn svc_handler(svc: u32, context: *const u32);`
+    // `extern "C" fn svc_handler(svc: u32);`
     .global _asm_svc_handler
     .type _asm_svc_handler, %function
     _asm_svc_handler:
@@ -426,44 +426,52 @@ core::arch::global_asm!(
 
     // Called from the vector table when we have an undefined exception.
     // Saves state and calls a C-compatible handler like
-    // `extern "C" fn _undefined_handler();`
+    // `extern "C" fn _undefined_handler(addr: usize);`
     .global _asm_default_undefined_handler
     .type _asm_default_undefined_handler, %function
     _asm_default_undefined_handler:
-        // First adjust LR for two purposes: Passing the faulting instruction to the C handler,
-        // and to return to the failing instruction after the C handler returns.
-        // Load processor status
-        mrs      r4, cpsr
-        // Occurred in Thumb state?
-        tst      r4, {t_bit}
-        // If not in Thumb mode, branch to not_thumb
-        beq     not_thumb
-        subs    lr, lr, #2
-        b       done
-not_thumb:
-        // Subtract 4 from LR (ARM mode)
-	      subs	lr, lr, #4
-done:
         // state save from compiled code
         srsfd   sp!, {und_mode}
+        // to work out what mode we're in, we need R0
+        push    {{r0}}
+        // First adjust LR for two purposes: Passing the faulting instruction to the C handler,
+        // and to return to the failing instruction after the C handler returns.
+        // Load processor status for the calling code
+        mrs     r0, spsr
+        // Was the code that triggered the exception in Thumb state?
+        tst     r0, {t_bit}
+        // Subtract 2 in Thumb Mode, 4 in Arm Mode - see p.1206 of the ARMv7-A architecture manual.
+        ite     eq
+        subeq   lr, lr, #4
+        subne   lr, lr, #2
+        // save the newly computed LR
+        push    {{lr}}
+        // now do our standard exception save
     "#,
     save_context!(),
     r#"
         // Pass the faulting instruction address to the handler.
-        mov r0, lr
+        mov     r0, lr
         // call C handler
         bl      _undefined_handler
+        // do our standard restore
     "#,
     restore_context!(),
     r#"
+        // get our saved LR
+        pop     {{lr}}
+        // get our real saved R0
+        pop     {{r0}}
+        // overwrite the saved LR with the adjusted one
+        str     lr, [sp]
         // Return to the failing instruction which is the recommended approach by ARM.
         rfefd   sp!
     .size _asm_default_undefined_handler, . - _asm_default_undefined_handler
 
 
-    // Called from the vector table when we have an undefined exception.
+    // Called from the vector table when we have a prefetch exception.
     // Saves state and calls a C-compatible handler like
-    // `extern "C" fn _prefetch_handler();`
+    // `extern "C" fn _prefetch_handler(addr: usize);`
     .global _asm_default_prefetch_handler
     .type _asm_default_prefetch_handler, %function
     _asm_default_prefetch_handler:
@@ -488,7 +496,7 @@ done:
 
     // Called from the vector table when we have an undefined exception.
     // Saves state and calls a C-compatible handler like
-    // `extern "C" fn _abort_handler();`
+    // `extern "C" fn _abort_handler(addr: usize);`
     .global _asm_default_abort_handler
     .type _asm_default_abort_handler, %function
     _asm_default_abort_handler:
@@ -500,7 +508,7 @@ done:
     save_context!(),
     r#"
         // Pass the faulting instruction address to the handler.
-        mov r0, lr
+        mov     r0, lr
         // call C handler
         bl      _abort_handler
     "#,

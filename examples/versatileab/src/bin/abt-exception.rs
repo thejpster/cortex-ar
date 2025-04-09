@@ -56,17 +56,17 @@ fn disable_alignment_check() {
 }
 
 #[unsafe(no_mangle)]
-unsafe extern "C" fn _undefined_handler(_faulting_instruction: u32) {
+unsafe extern "C" fn _undefined_handler(_addr: u32) {
     panic!("unexpected undefined exception");
 }
 
 #[unsafe(no_mangle)]
-unsafe extern "C" fn _prefetch_handler(_faulting_instruction: u32) {
+unsafe extern "C" fn _prefetch_handler(_addr: u32) {
     panic!("unexpected prefetch exception");
 }
 
 #[unsafe(no_mangle)]
-unsafe extern "C" fn _abort_handler(_faulting_instruction: u32) {
+unsafe extern "C" fn _abort_handler(_addr: u32) {
     println!("data abort occurred");
     let dfsr = Dfsr::read();
     println!("DFSR (Fault Status Register): {:?}", dfsr);
