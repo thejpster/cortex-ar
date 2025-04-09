@@ -78,9 +78,8 @@ unsafe extern "C" fn _abort_handler(_addr: u32) {
     println!("DFAR (Faulting Address Register): {:?}", dfar);
     enable_alignment_check();
     // For the first iteration, we do a regular exception return, which should
-    // trigger the exception again.
-    let counter_val = COUNTER.fetch_add(1, core::sync::atomic::Ordering::Relaxed) + 1;
-    if counter_val == 2 {
+    // trigger the exception again. The second time around we quit.
+    if COUNTER.fetch_add(1, core::sync::atomic::Ordering::Relaxed) == 1 {
         semihosting::process::exit(0);
     }
 }
