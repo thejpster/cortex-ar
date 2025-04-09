@@ -1,0 +1,11 @@
+Hello, this is a prefetch exception example
+prefetch abort occurred
+IFSR (Fault Status Register): IFSR { ext=false Domain=0b0000 Status=0b00010 }
+IFSR Status: Ok(DebugEvent)
+IFAR (Faulting Address Register): Ifar(0)
+caught bkpt_from_a32
+prefetch abort occurred
+IFSR (Fault Status Register): IFSR { ext=false Domain=0b0000 Status=0b00010 }
+IFSR Status: Ok(DebugEvent)
+IFAR (Faulting Address Register): Ifar(0)
+caught bkpt_from_a32
