@@ -51,12 +51,12 @@ core::arch::global_asm!(
 );
 
 #[unsafe(no_mangle)]
-unsafe extern "C" fn _undefined_handler(_addr: usize) {
+unsafe extern "C" fn _undefined_handler(_addr: usize) -> ! {
     panic!("unexpected undefined exception");
 }
 
 #[unsafe(no_mangle)]
-unsafe extern "C" fn _prefetch_handler(addr: usize) {
+unsafe extern "C" fn _prefetch_handler(addr: usize) -> usize {
     println!("prefetch abort occurred");
     let ifsr = Ifsr::read();
     println!("IFSR (Fault Status Register): {:?}", ifsr);
@@ -80,9 +80,11 @@ unsafe extern "C" fn _prefetch_handler(addr: usize) {
         // we've faulted twice - time to quit
         semihosting::process::exit(0);
     }
+
+    addr
 }
 
 #[unsafe(no_mangle)]
-unsafe extern "C" fn _abort_handler(_addr: usize) {
+unsafe extern "C" fn _abort_handler(_addr: usize) -> ! {
     panic!("unexpected abort exception");
 }
