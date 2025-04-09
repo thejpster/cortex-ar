@@ -488,10 +488,15 @@ core::arch::global_asm!(
     // Work around https://github.com/rust-lang/rust/issues/127269
     .fpu vfp3-d16
 
-    // Pass in stack top in r0
+    // Configure a stack for every mode. Leaves you in sys mode.
+    //
+    // Pass in stack top in r0.
     .global _stack_setup
     .type _stack_setup, %function
     _stack_setup:
+        // Save LR from whatever mode we're currently in
+        mov     r2, lr
+        // (we might not be in the same mode when we return).
         // Set stack pointer (right after) and mask interrupts for for UND mode (Mode 0x1B)
         msr     cpsr, {und_mode}
         mov     sp, r0
@@ -520,11 +525,12 @@ core::arch::global_asm!(
         // Set stack pointer (right after) and mask interrupts for for System mode (Mode 0x1F)
         msr     cpsr, {sys_mode}
         mov     sp, r0
-        // Clear the Thumb Exception bit because we're in Arm mode
+        // Clear the Thumb Exception bit because all our targets are currently
+        // for Arm (A32) mode
         mrc     p15, 0, r0, c1, c0, 0
         bic     r0, #{te_bit}
         mcr     p15, 0, r0, c1, c0, 0
-        bx      lr
+        bx      r2
     .size _stack_setup, . - _stack_setup
 
     .type _el1_start, %function
