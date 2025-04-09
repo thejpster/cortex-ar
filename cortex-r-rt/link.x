@@ -92,11 +92,13 @@ ASSERT(_abt_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of ABT stack is not 8
 ASSERT(_und_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of UND stack is not 8-byte aligned");
 ASSERT(_svc_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of SVC stack is not 8-byte aligned");
 
-PROVIDE(_asm_undefined_handler =_asm_default_handler);
-PROVIDE(_asm_prefetch_handler  =_asm_default_handler);
-PROVIDE(_asm_abort_handler     =_asm_default_handler);
+/* Weak aliases for ASM default handlers */
+PROVIDE(_asm_undefined_handler =_asm_default_undefined_handler);
+PROVIDE(_asm_prefetch_handler  =_asm_default_prefetch_handler);
+PROVIDE(_asm_abort_handler     =_asm_default_abort_handler);
 PROVIDE(_asm_fiq_handler       =_asm_default_fiq_handler);
 
+/* Weak aliases for C default handlers */
 PROVIDE(_undefined_handler     =_default_handler);
 PROVIDE(_abort_handler         =_default_handler);
 PROVIDE(_prefetch_handler      =_default_handler);
