@@ -183,8 +183,8 @@ pub extern "C" fn _default_handler() {
 // The Interrupt Vector Table, and some default assembly-language handler.
 core::arch::global_asm!(
     r#"
-    .section .vector_table
-    .align 0
+    .section .vector_table, "ax"
+    .align 4
 
     .global _vector_table
     .type _vector_table, %function
@@ -199,7 +199,7 @@ core::arch::global_asm!(
         ldr     pc, =_asm_fiq_handler
     .size _vector_table, . - _vector_table
 
-    .section .text.handlers
+    .section .text.handlers, "ax"
 
     .global _asm_default_fiq_handler
     .type _asm_default_fiq_handler, %function
@@ -306,7 +306,7 @@ macro_rules! restore_context {
 // Our assembly language exception handlers
 core::arch::global_asm!(
     r#"
-    .section .text.handlers
+    .section .text.handlers, "ax"
     // Work around https://github.com/rust-lang/rust/issues/127269
     .fpu vfp3-d16
     .align 0
@@ -483,7 +483,7 @@ macro_rules! fpu_enable {
 // We set up our stacks and `kmain` in system mode.
 core::arch::global_asm!(
     r#"
-    .section .text.startup
+    .section .text.startup, "ax"
     .align 0
     // Work around https://github.com/rust-lang/rust/issues/127269
     .fpu vfp3-d16
@@ -609,7 +609,7 @@ core::arch::global_asm!(
 #[cfg(arm_architecture = "v7-r")]
 core::arch::global_asm!(
     r#"
-    .section .text.startup
+    .section .text.startup, "ax"
     .align 0
 
     .global _default_start
@@ -629,7 +629,7 @@ core::arch::global_asm!(
 #[cfg(arm_architecture = "v8-r")]
 core::arch::global_asm!(
     r#"
-    .section .text.startup
+    .section .text.startup, "ax"
     .align 0
 
     .global _default_start
