@@ -34,19 +34,25 @@ my_diff() {
 }
 
 # armv7r-none-eabi tests
-for binary in hello registers svc; do
+for bin_path in $(ls examples/versatileab/src/bin/*.rs); do
+    filename=${bin_path##*/}
+    binary=${filename%.rs}
     cargo run ${versatile_ab_cargo} --target=armv7r-none-eabi --bin $binary | tee ./target/$binary-armv7r-none-eabi.out
     my_diff ./examples/versatileab/reference/$binary-armv7r-none-eabi.out ./target/$binary-armv7r-none-eabi.out || fail $binary "armv7r-none-eabi"
 done
 
 # armv7r-none-eabihf tests
-for binary in hello registers svc undef-exception prefetch-exception abt-exception; do
+for bin_path in $(ls examples/versatileab/src/bin/*.rs); do
+    filename=${bin_path##*/}
+    binary=${filename%.rs}
     cargo run ${versatile_ab_cargo} --target=armv7r-none-eabihf --bin $binary | tee ./target/$binary-armv7r-none-eabihf.out
     my_diff ./examples/versatileab/reference/$binary-armv7r-none-eabihf.out ./target/$binary-armv7r-none-eabihf.out || fail $binary "armv7r-none-eabihf"
 done
 
 # armv7a-none-eabi tests
-for binary in hello registers svc undef-exception prefetch-exception abt-exception; do
+for bin_path in $(ls examples/versatileab/src/bin/*.rs); do
+    filename=${bin_path##*/}
+    binary=${filename%.rs}
     cargo run ${versatile_ab_cargo} --target=armv7a-none-eabi --bin $binary | tee ./target/$binary-armv7a-none-eabi.out
     my_diff ./examples/versatileab/reference/$binary-armv7a-none-eabi.out ./target/$binary-armv7a-none-eabi.out || fail $binary "armv7a-none-eabi"
 done
@@ -55,9 +61,11 @@ done
 # Ubuntu 24.04 supplies QEMU 8, which doesn't support the machine we have configured for this target
 if qemu-system-arm --version | grep "version 9"; then
     # armv8r-none-eabihf tests
-    for binary in hello registers svc gic generic_timer; do
+    for bin_path in $(ls examples/mps3-an536/src/bin/*.rs); do
+        filename=${bin_path##*/}
+        binary=${filename%.rs}
         cargo +nightly run ${mps3_an536_cargo} --target=armv8r-none-eabihf --bin $binary --features=gic -Zbuild-std=core | tee ./target/$binary-armv8r-none-eabihf.out
-    my_diff ./examples/mps3-an536/reference/$binary-armv8r-none-eabihf.out ./target/$binary-armv8r-none-eabihf.out || fail $binary "armv8r-none-eabihf"
+        my_diff ./examples/mps3-an536/reference/$binary-armv8r-none-eabihf.out ./target/$binary-armv8r-none-eabihf.out || fail $binary "armv8r-none-eabihf"
     done
 fi
 

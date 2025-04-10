@@ -7,7 +7,7 @@ use core::sync::atomic::AtomicU32;
 
 use cortex_ar::register::{Dfar, Dfsr, Sctlr};
 // pull in our start-up code
-use versatileab as _;
+use mps3_an536 as _;
 
 use semihosting::println;
 
@@ -68,12 +68,12 @@ unsafe extern "C" fn _prefetch_handler(_addr: u32) -> ! {
 #[unsafe(no_mangle)]
 unsafe extern "C" fn _abort_handler(addr: usize) -> usize {
     println!("data abort occurred");
-    let dfsr = Dfsr::read();
-    println!("DFSR (Fault Status Register): {:?}", dfsr);
-    println!("DFSR Status: {:?}", dfsr.status());
     // If this is not disabled, reading DFAR will trigger an alignment fault on Armv8-R, leading
     // to a loop.
     disable_alignment_check();
+    let dfsr = Dfsr::read();
+    println!("DFSR (Fault Status Register): {:?}", dfsr);
+    println!("DFSR Status: {:?}", dfsr.status());
     let dfar = Dfar::read();
     println!("DFAR (Faulting Address Register): {:?}", dfar);
     enable_alignment_check();
