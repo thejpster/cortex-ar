@@ -1,4 +1,4 @@
-//! # Run-time support for Arm Cortex-R
+//! # Run-time support for Arm Cortex-A (AArch32)
 //!
 //! This library implements a simple Arm vector table, suitable for getting into
 //! a Rust application running in System Mode. It also provides a reference
