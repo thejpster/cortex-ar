@@ -93,7 +93,6 @@ unsafe extern "C" fn _abort_handler(addr: usize) -> usize {
     println!("DFSR (Fault Status Register): {:?}", dfsr);
     println!("DFSR Status: {:?}", dfsr.status());
     let dfar = Dfar::read();
-    println!("DFAR (Faulting Address Register): {:?}", dfar);
     enable_alignment_check();
 
     // note the fault isn't at the start of the function
