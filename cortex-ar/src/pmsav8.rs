@@ -154,6 +154,59 @@ impl El1Mpu {
         Ok(())
     }
 
+    /// Reconfigure a subset of EL1 MPU regions starting from a specified index.
+    ///
+    /// ## Arguments
+    ///
+    /// - `regions_starting_idx`: The starting index for the regions to be reconfigured.
+    /// - `regions`: A slice of `Region` objects that will overwrite the previous regions starting from `regions_starting_idx`.
+    pub fn reconfigure_regions(
+        &mut self,
+        regions_starting_idx: u8,
+        regions: &[Region],
+    ) -> Result<(), Error> {
+        self.disable();
+
+        if regions.len() as u8 + regions_starting_idx > self.num_regions() {
+            return Err(Error::TooManyRegions);
+        }
+
+        for (idx, region) in regions.iter().enumerate() {
+            let start = *(region.range.start()) as usize as u32;
+            // Check for 64-byte alignment (0x3F is six bits)
+            if start & 0x3F != 0 {
+                return Err(Error::UnalignedRegion(region.range.clone()));
+            }
+            let end = *(region.range.end()) as usize as u32;
+            if end & 0x3F != 0x3F {
+                return Err(Error::UnalignedRegion(region.range.clone()));
+            }
+            if region.mair > 7 {
+                return Err(Error::InvalidMair(region.mair));
+            }
+            register::Prselr::write(register::Prselr(idx as u32 + regions_starting_idx as u32));
+            register::Prbar::write({
+                let mut bar = register::Prbar::new_with_raw_value(0);
+                bar.set_base(u26::from_u32(start >> 6));
+                bar.set_access_perms(region.access);
+                bar.set_nx(region.no_exec);
+                bar.set_shareability(region.shareability);
+                bar
+            });
+            register::Prlar::write({
+                let mut lar = register::Prlar::new_with_raw_value(0);
+                lar.set_limit(u26::from_u32(end >> 6));
+                lar.set_enabled(region.enable);
+                lar.set_mair(u3::from_u8(region.mair));
+                lar
+            });
+        }
+
+        self.enable();
+
+        Ok(())
+    }
+
     /// Enable the EL1 MPU
     pub fn enable(&mut self) {
         register::Sctlr::modify(|r| {
