@@ -34,11 +34,11 @@ impl GenericTimer for El2PhysicalTimer {
         self.0.frequency_hz()
     }
 
-    fn counter(&mut self) -> u64 {
+    fn counter(&self) -> u64 {
         self.0.counter()
     }
 
-    fn counter_compare(&mut self) -> u64 {
+    fn counter_compare(&self) -> u64 {
         self.0.counter_compare()
     }
 
@@ -105,11 +105,11 @@ impl GenericTimer for El2VirtualTimer {
         self.0.frequency_hz()
     }
 
-    fn counter(&mut self) -> u64 {
+    fn counter(&self) -> u64 {
         self.0.counter()
     }
 
-    fn counter_compare(&mut self) -> u64 {
+    fn counter_compare(&self) -> u64 {
         self.0.counter_compare()
     }
 
@@ -166,11 +166,11 @@ impl super::GenericTimer for El2HypPhysicalTimer {
         register::Cntfrq::read().0
     }
 
-    fn counter(&mut self) -> u64 {
+    fn counter(&self) -> u64 {
         register::CntPct::read().0
     }
 
-    fn counter_compare(&mut self) -> u64 {
+    fn counter_compare(&self) -> u64 {
         register::CnthpCval::read().0
     }
 

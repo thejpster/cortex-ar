@@ -30,11 +30,11 @@ impl super::GenericTimer for El0PhysicalTimer {
         register::Cntfrq::read().0
     }
 
-    fn counter(&mut self) -> u64 {
+    fn counter(&self) -> u64 {
         register::CntPct::read().0
     }
 
-    fn counter_compare(&mut self) -> u64 {
+    fn counter_compare(&self) -> u64 {
         register::CntpCval::read().0
     }
 
@@ -94,11 +94,11 @@ impl super::GenericTimer for El0VirtualTimer {
         register::Cntfrq::read().0
     }
 
-    fn counter(&mut self) -> u64 {
+    fn counter(&self) -> u64 {
         register::CntVct::read().0
     }
 
-    fn counter_compare(&mut self) -> u64 {
+    fn counter_compare(&self) -> u64 {
         register::CntvCval::read().0
     }
 
