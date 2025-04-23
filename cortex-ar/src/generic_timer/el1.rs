@@ -38,11 +38,11 @@ impl GenericTimer for El1PhysicalTimer {
         self.0.frequency_hz()
     }
 
-    fn counter(&mut self) -> u64 {
+    fn counter(&self) -> u64 {
         self.0.counter()
     }
 
-    fn counter_compare(&mut self) -> u64 {
+    fn counter_compare(&self) -> u64 {
         self.0.counter_compare()
     }
 
@@ -138,11 +138,11 @@ impl GenericTimer for El1VirtualTimer {
         self.0.frequency_hz()
     }
 
-    fn counter(&mut self) -> u64 {
+    fn counter(&self) -> u64 {
         self.0.counter()
     }
 
-    fn counter_compare(&mut self) -> u64 {
+    fn counter_compare(&self) -> u64 {
         self.0.counter_compare()
     }
 
