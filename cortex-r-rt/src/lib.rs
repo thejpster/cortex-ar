@@ -409,7 +409,7 @@ core::arch::global_asm!(
         ite     eq
         subeq   lr, lr, #4
         subne   lr, lr, #2
-        // now do our standard exception save
+        // now do our standard exception save (which saves the 'wrong' R0)
     "#,
     save_context!(),
     r#"
@@ -558,8 +558,8 @@ core::arch::global_asm!(
     abt_mode = const ProcessorMode::Abt as u8,
     t_bit = const {
         Cpsr::new_with_raw_value(0)
-        .with_t(true)
-        .raw_value()
+            .with_t(true)
+            .raw_value()
     },
 );
 
