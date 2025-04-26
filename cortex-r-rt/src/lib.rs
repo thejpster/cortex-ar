@@ -419,15 +419,15 @@ core::arch::global_asm!(
         bl      _undefined_handler
         // if we get back here, assume they returned a new LR in r0
         mov     lr, r0
-        // do our standard restore
+        // do our standard restore (with the 'wrong' R0)
     "#,
     restore_context!(),
     r#"
-        // get our real saved R0
+        // get the R0 we saved early
         pop     {{r0}}
-        // overwrite the saved LR with the adjusted one
+        // overwrite the saved LR with the one from the C handler
         str     lr, [sp]
-        // Return to the failing instruction which is the recommended approach by ARM.
+        // Return from the asm handler
         rfefd   sp!
     .size _asm_default_undefined_handler, . - _asm_default_undefined_handler
 
@@ -483,9 +483,9 @@ core::arch::global_asm!(
     "#,
     restore_context!(),
     r#"
-        // overwrite the saved LR with the adjusted one
+        // overwrite the saved LR with the one from the C handler
         str     lr, [sp]
-        // Return to the failing instruction which is the recommended approach by ARM.
+        // Return from the asm handler
         rfefd   sp!
     .size _asm_default_abort_handler, . - _asm_default_abort_handler
 
@@ -514,9 +514,9 @@ core::arch::global_asm!(
     "#,
     restore_context!(),
     r#"
-        // overwrite the saved LR with the adjusted one
+        // overwrite the saved LR with the one from the C handler
         str     lr, [sp]
-        // Return to the failing instruction which is the recommended approach by ARM.
+        // Return from the asm handler
         rfefd   sp!
     .size _asm_default_prefetch_handler, . - _asm_default_prefetch_handler
 

@@ -447,7 +447,7 @@ core::arch::global_asm!(
     _asm_default_undefined_handler:
         // state save from compiled code
         srsfd   sp!, {und_mode}
-        // to work out what mode we're in, we need R0
+        // to work out what mode we're in, we need R0, so save it
         push    {{r0}}
         // First adjust LR for two purposes: Passing the faulting instruction to the C handler,
         // and to return to the failing instruction after the C handler returns.
@@ -459,7 +459,7 @@ core::arch::global_asm!(
         ite     eq
         subeq   lr, lr, #4
         subne   lr, lr, #2
-        // now do our standard exception save
+        // now do our standard exception save (which saves the 'wrong' R0)
     "#,
     save_context!(),
     r#"
@@ -469,15 +469,15 @@ core::arch::global_asm!(
         bl      _undefined_handler
         // if we get back here, assume they returned a new LR in r0
         mov     lr, r0
-        // do our standard restore
+        // do our standard restore (with the 'wrong' R0)
     "#,
     restore_context!(),
     r#"
-        // get our real saved R0
+        // get the R0 we saved early
         pop     {{r0}}
-        // overwrite the saved LR with the adjusted one
+        // overwrite the saved LR with the one from the C handler
         str     lr, [sp]
-        // Return to the failing instruction which is the recommended approach by ARM.
+        // Return from the asm handler
         rfefd   sp!
     .size _asm_default_undefined_handler, . - _asm_default_undefined_handler
 
@@ -533,9 +533,9 @@ core::arch::global_asm!(
     "#,
     restore_context!(),
     r#"
-        // overwrite the saved LR with the adjusted one
+        // overwrite the saved LR with the one from the C handler
         str     lr, [sp]
-        // Return to the failing instruction which is the recommended approach by ARM.
+        // Return from the asm handler
         rfefd   sp!
     .size _asm_default_abort_handler, . - _asm_default_abort_handler
 
@@ -564,9 +564,9 @@ core::arch::global_asm!(
     "#,
     restore_context!(),
     r#"
-        // overwrite the saved LR with the adjusted one
+        // overwrite the saved LR with the one from the C handler
         str     lr, [sp]
-        // Return to the failing instruction which is the recommended approach by ARM.
+        // Return from the asm handler
         rfefd   sp!
     .size _asm_default_prefetch_handler, . - _asm_default_prefetch_handler
 
