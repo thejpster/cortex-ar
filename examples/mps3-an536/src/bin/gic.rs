@@ -84,6 +84,8 @@ fn main() -> ! {
         cortex_ar::asm::nop();
     }
 
+    println!("IRQ test completed OK");
+
     semihosting::process::exit(0);
 }
 
@@ -100,7 +102,7 @@ fn irq_handler() {
         unsafe {
             cortex_ar::interrupt::enable();
         }
-        println!("- IRQ Handing {:?}", int_id);
+        println!("- IRQ Handling {:?}", int_id);
         if int_id == SGI_INTID_LO {
             println!(
                 "- IRQ got {:?}, sending hi-prio {:?}",

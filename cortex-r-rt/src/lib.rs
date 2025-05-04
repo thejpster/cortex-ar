@@ -463,7 +463,7 @@ core::arch::global_asm!(
     .type _asm_default_undefined_handler, %function
     _asm_default_undefined_handler:
         // state save from compiled code
-        srsfd   sp!, {und_mode}
+        srsfd   sp!, #{und_mode}
         // to work out what mode we're in, we need R0
         push    {{r0}}
         // First adjust LR for two purposes: Passing the faulting instruction to the C handler,
@@ -507,7 +507,7 @@ core::arch::global_asm!(
     .global _asm_default_svc_handler
     .type _asm_default_svc_handler, %function
     _asm_default_svc_handler:
-        srsfd   sp!, {svc_mode}
+        srsfd   sp!, #{svc_mode}
     "#,
     save_context!(),
     r#"
@@ -537,7 +537,7 @@ core::arch::global_asm!(
         // Subtract 8 from the stored LR, see p.1214 of the ARMv7-A architecture manual.
         subs    lr, lr, #8
         // state save from compiled code
-        srsfd   sp!, {abt_mode}
+        srsfd   sp!, #{abt_mode}
     "#,
     save_context!(),
     r#"
@@ -568,7 +568,7 @@ core::arch::global_asm!(
         // Subtract 4 from the stored LR, see p.1212 of the ARMv7-A architecture manual.
         subs    lr, lr, #4
         // state save from compiled code
-        srsfd   sp!, {abt_mode}
+        srsfd   sp!, #{abt_mode}
     "#,
     save_context!(),
     r#"
@@ -596,16 +596,28 @@ core::arch::global_asm!(
     .global _asm_default_irq_handler
     .type _asm_default_irq_handler, %function
     _asm_default_irq_handler:
+        // make sure we jump back to the right place
         sub     lr, lr, 4
-        srsfd   sp!, {irq_mode}
+        // The hardware has copied CPSR to SPSR_irq and LR to LR_irq for us.
+        // Now push SPSR_irq and LR_irq to the SYS stack.
+        srsfd   sp!, #{sys_mode}
+        // switch to system mode
+        cps     #{sys_mode}
+        // we also need to save LR, so we can be re-entrant
+        push    {{lr}}
+        // save state to the system stack (adjusting SP for alignment)
     "#,
-    save_context!(),
+        save_context!(),
     r#"
         // call C handler
         bl      _irq_handler
+        // restore from the system stack
     "#,
-    restore_context!(),
+        restore_context!(),
     r#"
+        // restore LR
+        pop     {{lr}}
+        // pop CPSR and LR from the stack (which also restores the mode)
         rfefd   sp!
     .size _asm_default_irq_handler, . - _asm_default_irq_handler
 
@@ -620,9 +632,9 @@ core::arch::global_asm!(
     .size    _asm_default_fiq_handler, . - _asm_default_fiq_handler
     "#,
     svc_mode = const ProcessorMode::Svc as u8,
-    irq_mode = const ProcessorMode::Irq as u8,
     und_mode = const ProcessorMode::Und as u8,
     abt_mode = const ProcessorMode::Abt as u8,
+    sys_mode = const ProcessorMode::Sys as u8,
     t_bit = const {
         Cpsr::new_with_raw_value(0)
             .with_t(true)
