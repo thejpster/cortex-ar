@@ -84,6 +84,16 @@
 //!   extern "C" fn kmain() -> !;
 //!   ```
 //!
+//!   You can create a 'kmain' function by using the `#[entry]` macro on a
+//!   normal Rust function.
+//!
+//!   ```rust no_run
+//!   #[cortex_r_rt::entry]
+//!   fn my_main() -> ! {
+//!       todo!();
+//!   }
+//!   ```
+//!
 //! * `_svc_handler` - an `extern "C"` function to call when an SVC Exception
 //!   occurs. Our linker script PROVIDEs a default function at
 //!   `_default_handler` but you can override it. Returning from this function
@@ -95,6 +105,16 @@
 //!   ```rust
 //!   #[unsafe(no_mangle)]
 //!   extern "C" fn _svc_handler(svc: u32);
+//!   ```
+//!
+//!   You can create a '_svc_handler' function by using the
+//!   `#[exception(SvcHandler)]` macro on a normal Rust function.
+//!
+//!   ```rust no_run
+//!   #[cortex_r_rt::exception(SvcHandler)]
+//!   fn svc_handler(arg: u32) {
+//!       todo!();
+//!   }
 //!   ```
 //!
 //! * `_irq_handler` - an `extern "C"` function to call when an Interrupt
@@ -110,6 +130,16 @@
 //!   /// will continue at the interrupted instruction.
 //!   #[unsafe(no_mangle)]
 //!   extern "C" fn _irq_handler();
+//!   ```
+//!
+//!   You can create a '_irq_handler' function by using the
+//!   `#[exception(IrqHandler)]` macro on a normal Rust function.
+//!
+//!   ```rust no_run
+//!   #[cortex_r_rt::exception(IrqHandler)]
+//!   fn irq_handler() {
+//!       todo!();
+//!   }
 //!   ```
 //!
 //! * `_undefined_handler` - an `extern "C"` function to call when an Undefined
@@ -134,6 +164,17 @@
 //!   extern "C" fn _undefined_handler(addr: usize) -> usize;
 //!   ```
 //!
+//!   You can create a '_undefined_handler' function by using the
+//!   `#[exception(UndefinedHandler)]` macro on an unsafe Rust function with the
+//!   appropriate arguments and return type.
+//!
+//!   ```rust no_run
+//!   #[cortex_r_rt::exception(UndefinedHandler)]
+//!   fn my_handler(addr: usize) -> ! {
+//!       todo!();
+//!   }
+//!   ```
+//!
 //! * `_abort_handler` - an `extern "C"` function to call when an Data Abort
 //!   occurs. Our linker script PROVIDEs a default implementation at
 //!   `_default_handler` which is used if `_abort_handler` is missing.
@@ -156,6 +197,17 @@
 //!   extern "C" fn _abort_handler(addr: usize) -> usize;
 //!   ```
 //!
+//!   You can create a '_abort_handler' function by using the
+//!   `#[exception(AbortHandler)]` macro on an unsafe Rust function with the
+//!   appropriate arguments and return type.
+//!
+//!   ```rust no_run
+//!   #[cortex_r_rt::exception(AbortHandler)]
+//!   fn my_handler(addr: usize) -> ! {
+//!       todo!();
+//!   }
+//!   ```
+//!
 //! * `_prefetch_handler` - an `extern "C"` function to call when an Prefetch
 //!   Abort occurs. Our linker script PROVIDEs a default implementation at
 //!   `_default_handler` which is used if `_prefetch_handler` is missing.
@@ -176,6 +228,17 @@
 //!   /// Return `addr` to go back and execute the faulting instruction again.
 //!   #[unsafe(no_mangle)]
 //!   extern "C" fn _prefetch_handler(addr: usize) -> usize;
+//!   ```
+//!
+//!   You can create a '_prefetch_handler' function by using the
+//!   `#[exception(PrefetchHandler)]` macro on an unsafe Rust function with the
+//!   appropriate arguments and return type.
+//!
+//!   ```rust no_run
+//!   #[cortex_r_rt::exception(PrefetchHandler)]
+//!   fn my_handler(addr: usize) -> ! {
+//!       todo!();
+//!   }
 //!   ```
 //!
 //! ### ASM functions
@@ -261,6 +324,10 @@ use cortex_ar::{
 
 #[cfg(arm_architecture = "v8-r")]
 use cortex_ar::register::Hactlr;
+
+pub use cortex_ar_rt_macros::entry;
+
+pub use cortex_ar_rt_macros::exception;
 
 /// Our default exception handler.
 ///
