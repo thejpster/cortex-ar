@@ -4,6 +4,9 @@
 #![no_main]
 
 // pull in our start-up code
+use cortex_r_rt::{entry, exception};
+
+// pull in our library
 use mps3_an536 as _;
 
 use arm_gic::{
@@ -22,15 +25,8 @@ const GICR_BASE_OFFSET: usize = 0x0010_0000usize;
 
 /// The entry-point to the Rust application.
 ///
-/// It is called by the start-up code in `cortex-m-rt`.
-#[no_mangle]
-pub extern "C" fn kmain() {
-    main();
-}
-
-/// The main function of our Rust application.
-///
-/// Called by [`kmain`].
+/// It is called by the start-up code in `cortex-r-rt`.
+#[entry]
 fn main() -> ! {
     // Get the GIC address by reading CBAR
     let periphbase = cortex_ar::register::ImpCbar::read().periphbase();
@@ -89,8 +85,8 @@ fn dump_cpsr() {
     println!("CPSR: {:?}", cpsr);
 }
 
-#[no_mangle]
-unsafe extern "C" fn _irq_handler() {
+#[exception(IrqHandler)]
+fn irq_handler() {
     println!("> IRQ");
     while let Some(int_id) = SingleCoreGic::get_and_acknowledge_interrupt() {
         println!("- IRQ handle {:?}", int_id);
