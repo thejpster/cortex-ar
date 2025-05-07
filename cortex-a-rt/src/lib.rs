@@ -143,6 +143,15 @@
 //!   }
 //!   ```
 //!
+//!   Or you can use `#[interrupt]`:
+//!
+//!   ```rust no_run
+//!   #[cortex_a_rt::interrupt]
+//!   fn irq_handler() {
+//!       todo!();
+//!   }
+//!   ```
+//!
 //! * `_undefined_handler` - an `extern "C"` function to call when an Undefined
 //!   Exception occurs. Our linker script PROVIDEs a default implementation at
 //!   `_default_handler` which is used if `_undefined_handler` is missing.
@@ -320,9 +329,7 @@ use cortex_ar::{
     register::{cpsr::ProcessorMode, Cpsr},
 };
 
-pub use cortex_ar_rt_macros::entry;
-
-pub use cortex_ar_rt_macros::exception;
+pub use cortex_ar_rt_macros::{entry, exception, interrupt};
 
 /// Our default exception handler.
 ///

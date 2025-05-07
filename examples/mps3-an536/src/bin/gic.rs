@@ -4,7 +4,7 @@
 #![no_main]
 
 // pull in our start-up code
-use cortex_r_rt::{entry, exception};
+use cortex_r_rt::{entry, interrupt};
 
 // pull in our library
 use mps3_an536 as _;
@@ -94,7 +94,7 @@ fn dump_cpsr() {
     println!("CPSR: {:?}", cpsr);
 }
 
-#[exception(IrqHandler)]
+#[interrupt]
 fn irq_handler() {
     println!("> IRQ");
     while let Some(int_id) = SingleCoreGic::get_and_acknowledge_interrupt() {

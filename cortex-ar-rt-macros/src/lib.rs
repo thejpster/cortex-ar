@@ -18,6 +18,9 @@ use syn::{
 
 /// Creates an `unsafe` program entry point (i.e. a `kmain` function).
 ///
+/// It's `unsafe` because you are not supposed to call it - it should only be
+/// called from the start-up code once initialisation is complete.
+///
 /// When placed on a function like:
 ///
 /// ```rust ignore
@@ -81,7 +84,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     let tramp_ident = Ident::new("__cortex_ar_rt_kmain", Span::call_site());
     let ident = &f.sig.ident;
 
-    if let Err(error) = check_attr_whitelist(&f.attrs, WhiteListCaller::Entry) {
+    if let Err(error) = check_attr_whitelist(&f.attrs, Kind::Entry) {
         return error;
     }
 
@@ -125,6 +128,9 @@ impl std::fmt::Display for Exception {
 
 /// Creates an `unsafe` exception handler.
 ///
+/// It's `unsafe` because you are not supposed to call it - it should only be
+/// called from assembly routines registered in the interrupt vector table.
+///
 /// When placed on a function like:
 ///
 /// ```rust ignore
@@ -153,34 +159,91 @@ impl std::fmt::Display for Exception {
 /// * SvcHandler (creates `_svc_handler`)
 /// * PrefetchHandler (creates `_prefetch_handler`)
 /// * AbortHandler (creates `_abort_handler`)
-/// * IrqHandler (creates `_irq_handler`)
+/// * IrqHandler (creates `_irq_handler`) - you can also use `#[interrupt]` if you prefer.
 #[proc_macro_attribute]
 pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
+    handle_exception_interrupt(args, input, Kind::Exception)
+}
+
+/// Creates an `unsafe` interrupt handler.
+///
+/// It's `unsafe` because you are not supposed to call it - it should only be
+/// called from assembly routines registered in the interrupt vector table.
+///
+/// When placed on a function like:
+///
+/// ```rust ignore
+/// #[interrupt]
+/// fn foo(addr: usize) -> ! {
+///     panic!("On no")
+/// }
+/// ```
+///
+/// You get something like:
+///
+/// ```rust
+/// #[export_name = "_interrupt_handler"]
+/// pub unsafe extern "C" fn __cortex_ar_rt_interrupt_handler(addr: usize) -> ! {
+///     foo(addr)
+/// }
+///
+/// fn foo(addr: usize) -> ! {
+///     panic!("On no")
+/// }
+/// ```
+///
+/// This is just a convienient short-hand for `#[exception(IrqHandler)` because
+/// you may not consider interrupts to be a form of exception.
+#[proc_macro_attribute]
+pub fn interrupt(args: TokenStream, input: TokenStream) -> TokenStream {
+    handle_exception_interrupt(args, input, Kind::Interrupt)
+}
+
+/// Note if we got `#[entry]`, `#[exception(...)]` or `#[interrupt]`
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+enum Kind {
+    /// Corresponds to `#[entry]`
+    Entry,
+    /// Corresponds to `#[exception(...)]`
+    Exception,
+    /// Corresponds to `#[interrupt]`
+    Interrupt,
+}
+
+/// A common routine for handling exception or interrupt functions
+fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind) -> TokenStream {
     let f = parse_macro_input!(input as ItemFn);
 
-    if let Err(error) = check_attr_whitelist(&f.attrs, WhiteListCaller::Exception) {
+    if let Err(error) = check_attr_whitelist(&f.attrs, kind) {
         return error;
     }
 
-    let mut args_iter = args.into_iter();
-    let Some(TokenTree::Ident(exception_name)) = args_iter.next() else {
-        return parse::Error::new(
-            Span::call_site(),
-            "This attribute requires the name of the exception as the first argument",
-        )
-        .to_compile_error()
-        .into();
+    let exception_name = match kind {
+        Kind::Entry => {
+            panic!("Don't handle #[entry] with `handle_exception_interrupt`!");
+        }
+        Kind::Exception => {
+            let mut args_iter = args.into_iter();
+            let Some(TokenTree::Ident(exception_name)) = args_iter.next() else {
+                return parse::Error::new(
+                    Span::call_site(),
+                    "This attribute requires the name of the exception as the first argument",
+                )
+                .to_compile_error()
+                .into();
+            };
+            if !args_iter.next().is_none() {
+                return parse::Error::new(
+                    Span::call_site(),
+                    "This attribute accepts only one argument",
+                )
+                .to_compile_error()
+                .into();
+            }
+            exception_name.to_string()
+        }
+        Kind::Interrupt => "IrqHandler".to_string(),
     };
-    if !args_iter.next().is_none() {
-        return parse::Error::new(
-            Span::call_site(),
-            "This attribute accepts only one argument",
-        )
-        .to_compile_error()
-        .into();
-    }
-
-    let exception_name = exception_name.to_string();
 
     let exn = match exception_name.as_str() {
         "UndefinedHandler" => Exception::UndefinedHandler,
@@ -328,6 +391,9 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
     .into()
 }
 
+/// Given a list of attributes, split them into `cfg` and non-`cfg`.
+///
+/// Returns `(cfgs, non_cfgs)`.
 fn extract_cfgs(attrs: Vec<Attribute>) -> (Vec<Attribute>, Vec<Attribute>) {
     let mut cfgs = vec![];
     let mut not_cfgs = vec![];
@@ -343,12 +409,8 @@ fn extract_cfgs(attrs: Vec<Attribute>) -> (Vec<Attribute>, Vec<Attribute>) {
     (cfgs, not_cfgs)
 }
 
-enum WhiteListCaller {
-    Entry,
-    Exception,
-}
-
-fn check_attr_whitelist(attrs: &[Attribute], caller: WhiteListCaller) -> Result<(), TokenStream> {
+/// Check whether any disallowed attributes have been applied to our entry/exception function.
+fn check_attr_whitelist(attrs: &[Attribute], caller: Kind) -> Result<(), TokenStream> {
     let whitelist = &[
         "doc",
         "link_section",
@@ -370,11 +432,14 @@ fn check_attr_whitelist(attrs: &[Attribute], caller: WhiteListCaller) -> Result<
         }
 
         let err_str = match caller {
-            WhiteListCaller::Entry => {
+            Kind::Entry => {
                 "this attribute is not allowed on a cortex-r-rt/cortex-a-rt entry point"
             }
-            WhiteListCaller::Exception => {
+            Kind::Exception => {
                 "this attribute is not allowed on an exception handler controlled by cortex-r-rt/cortex-a-rt"
+            }
+            Kind::Interrupt => {
+                "this attribute is not allowed on an interrupt handler controlled by cortex-r-rt/cortex-a-rt"
             }
         };
 
