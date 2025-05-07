@@ -708,6 +708,20 @@ core::arch::global_asm!(
         stm     r0!, {{r3}}
         b       0b
     1:
+        // Zero all registers before calling kmain
+        mov     r0, 0
+        mov     r1, 0
+        mov     r2, 0
+        mov     r3, 0
+        mov     r4, 0
+        mov     r5, 0
+        mov     r6, 0
+        mov     r7, 0
+        mov     r8, 0
+        mov     r9, 0
+        mov     r10, 0
+        mov     r11, 0
+        mov     r12, 0
         // Jump to application
         bl      kmain
         // In case the application returns, loop forever
