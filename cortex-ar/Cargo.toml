@@ -43,3 +43,6 @@ critical-section-single-core = ["critical-section"]
 critical-section-multi-core = ["critical-section"]
 # Adds defmt::Format implementation for the register types
 defmt = ["dep:defmt"]
+
+[package.metadata.docs.rs]
+targets = ["armv7r-none-eabihf", "armv7r-none-eabi", "armv7a-none-eabihf"]
