@@ -33,3 +33,6 @@ eabi-fpu = []
 
 [build-dependencies]
 arm-targets = {version = "0.1.0", path = "../arm-targets"}
+
+[package.metadata.docs.rs]
+targets = ["armv7r-none-eabihf", "armv7r-none-eabihf"]
