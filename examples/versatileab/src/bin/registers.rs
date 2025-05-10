@@ -4,7 +4,7 @@
 #![no_main]
 
 // pull in our start-up code
-use versatileab::rt::{entry, exception};
+use versatileab::rt::entry;
 
 use semihosting::println;
 

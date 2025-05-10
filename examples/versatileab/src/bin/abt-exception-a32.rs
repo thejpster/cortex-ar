@@ -67,18 +67,18 @@ fn disable_alignment_check() {
     Sctlr::write(sctrl);
 }
 
-#[exception(UndefinedHandler)]
+#[exception(Undefined)]
 fn undefined_handler(_addr: usize) -> ! {
     panic!("unexpected undefined exception");
 }
 
-#[exception(PrefetchHandler)]
-fn prefetch_handler(_addr: usize) -> ! {
-    panic!("unexpected prefetch exception");
+#[exception(PrefetchAbort)]
+fn prefetch_abort_handler(_addr: usize) -> ! {
+    panic!("unexpected prefetch abort");
 }
 
-#[exception(AbortHandler)]
-fn abort_handler(addr: usize) -> usize {
+#[exception(DataAbort)]
+fn data_abort_handler(addr: usize) -> usize {
     println!("data abort occurred");
     // If this is not disabled, reading DFAR will trigger an alignment fault on Armv8-R, leading
     // to a loop.

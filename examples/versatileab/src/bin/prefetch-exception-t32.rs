@@ -1,4 +1,4 @@
-//! Example triggering a prefetch exception.
+//! Example triggering a prefetch abort exception.
 
 #![no_std]
 #![no_main]
@@ -17,12 +17,12 @@ static COUNTER: AtomicU32 = AtomicU32::new(0);
 /// It is called by the start-up.
 #[entry]
 fn main() -> ! {
-    println!("Hello, this is a prefetch exception example");
+    println!("Hello, this is a prefetch abort exception example");
 
     // A BKPT instruction triggers a Prefetch Abort except when Halting debug-mode is enabled.
     // See p. 2038 of ARMv7-M Architecture Reference Manual
     unsafe {
-        // trigger an prefetch exception, from T32 (Thumb) mode
+        // trigger an prefetch abort exception, from T32 (Thumb) mode
         bkpt_from_t32();
     }
 
@@ -49,13 +49,13 @@ core::arch::global_asm!(
 "#
 );
 
-#[exception(UndefinedHandler)]
+#[exception(Undefined)]
 fn undefined_handler(_addr: usize) -> ! {
     panic!("unexpected undefined exception");
 }
 
-#[exception(PrefetchHandler)]
-fn prefetch_handler(addr: usize) -> usize {
+#[exception(PrefetchAbort)]
+fn prefetch_abort_handler(addr: usize) -> usize {
     println!("prefetch abort occurred");
     let ifsr = Ifsr::read();
     println!("IFSR (Fault Status Register): {:?}", ifsr);
@@ -90,12 +90,12 @@ fn prefetch_handler(addr: usize) -> usize {
         }
         _ => {
             // we've faulted thrice - time to quit
-            panic!("_prefetch_handler called too often");
+            panic!("prefetch_handler called too often");
         }
     }
 }
 
-#[exception(AbortHandler)]
-fn abort_handler(_addr: usize) -> ! {
-    panic!("unexpected abort exception");
+#[exception(DataAbort)]
+fn data_abort_handler(_addr: usize) -> ! {
+    panic!("unexpected data abort exception");
 }

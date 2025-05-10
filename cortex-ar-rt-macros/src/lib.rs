@@ -1,6 +1,6 @@
 //! Macros for the cortex-a-rt and cortex-r-rt libraries
 //!
-//! Provides `#[entry]` and `#[exception(UndefinedHandler)]` attribute macros.
+//! Provides `#[entry]`, `#[exception(...)]` and `#[irq]` attribute macros.
 //!
 //! Do not use this crate directly.
 //!
@@ -107,21 +107,21 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
 /// The set of exceptions we can handle.
 #[derive(Debug, PartialEq)]
 enum Exception {
-    UndefinedHandler,
-    SvcHandler,
-    PrefetchHandler,
-    AbortHandler,
-    IrqHandler,
+    Undefined,
+    SupervisorCall,
+    PrefetchAbort,
+    DataAbort,
+    Irq,
 }
 
 impl std::fmt::Display for Exception {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Exception::UndefinedHandler => write!(f, "UndefinedHandler"),
-            Exception::SvcHandler => write!(f, "SvcHandler"),
-            Exception::PrefetchHandler => write!(f, "PrefetchHandler"),
-            Exception::AbortHandler => write!(f, "AbortHandler"),
-            Exception::IrqHandler => write!(f, "IrqHandler"),
+            Exception::Undefined => write!(f, "Undefined"),
+            Exception::SupervisorCall => write!(f, "SupervisorCall"),
+            Exception::PrefetchAbort => write!(f, "PrefetchAbort"),
+            Exception::DataAbort => write!(f, "DataAbort"),
+            Exception::Irq => write!(f, "Irq"),
         }
     }
 }
@@ -134,7 +134,7 @@ impl std::fmt::Display for Exception {
 /// When placed on a function like:
 ///
 /// ```rust ignore
-/// #[exception(UndefinedHandler)]
+/// #[exception(Undefined)]
 /// fn foo(addr: usize) -> ! {
 ///     panic!("On no")
 /// }
@@ -155,11 +155,11 @@ impl std::fmt::Display for Exception {
 ///
 /// The supported arguments are:
 ///
-/// * UndefinedHandler (creates `_undefined_handler`)
-/// * SvcHandler (creates `_svc_handler`)
-/// * PrefetchHandler (creates `_prefetch_handler`)
-/// * AbortHandler (creates `_abort_handler`)
-/// * IrqHandler (creates `_irq_handler`) - you can also use `#[interrupt]` if you prefer.
+/// * Undefined (creates `_undefined_handler`)
+/// * SupervisorCall (creates `_svc_handler`)
+/// * PrefetchAbort (creates `_prefetch_abort_handler`)
+/// * DataAbort (creates `_data_abort_handler`)
+/// * Irq (creates `_irq_handler`) - although people should prefer `#[irq]`.
 #[proc_macro_attribute]
 pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
     handle_exception_interrupt(args, input, Kind::Exception)
@@ -173,7 +173,7 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
 /// When placed on a function like:
 ///
 /// ```rust ignore
-/// #[interrupt]
+/// #[irq]
 /// fn foo(addr: usize) -> ! {
 ///     panic!("On no")
 /// }
@@ -182,8 +182,8 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
 /// You get something like:
 ///
 /// ```rust
-/// #[export_name = "_interrupt_handler"]
-/// pub unsafe extern "C" fn __cortex_ar_rt_interrupt_handler(addr: usize) -> ! {
+/// #[export_name = "_irq_handler"]
+/// pub unsafe extern "C" fn __cortex_ar_rt_irq_handler(addr: usize) -> ! {
 ///     foo(addr)
 /// }
 ///
@@ -192,21 +192,21 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// This is just a convienient short-hand for `#[exception(IrqHandler)` because
-/// you may not consider interrupts to be a form of exception.
+/// This is preferred over `#[exception(Irq)` because most people
+/// probably won't consider interrupts to be a form of exception.
 #[proc_macro_attribute]
-pub fn interrupt(args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn irq(args: TokenStream, input: TokenStream) -> TokenStream {
     handle_exception_interrupt(args, input, Kind::Interrupt)
 }
 
-/// Note if we got `#[entry]`, `#[exception(...)]` or `#[interrupt]`
+/// Note if we got `#[entry]`, `#[exception(...)]` or `#[irq]`
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 enum Kind {
     /// Corresponds to `#[entry]`
     Entry,
     /// Corresponds to `#[exception(...)]`
     Exception,
-    /// Corresponds to `#[interrupt]`
+    /// Corresponds to `#[irq]`
     Interrupt,
 }
 
@@ -218,7 +218,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
         return error;
     }
 
-    let exception_name = match kind {
+    let exception = match kind {
         Kind::Entry => {
             panic!("Don't handle #[entry] with `handle_exception_interrupt`!");
         }
@@ -232,7 +232,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 .to_compile_error()
                 .into();
             };
-            if !args_iter.next().is_none() {
+            if args_iter.next().is_some() {
                 return parse::Error::new(
                     Span::call_site(),
                     "This attribute accepts only one argument",
@@ -240,22 +240,23 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 .to_compile_error()
                 .into();
             }
-            exception_name.to_string()
+            match exception_name.to_string().as_str() {
+                "Undefined" => Exception::Undefined,
+                "SupervisorCall" => Exception::SupervisorCall,
+                "PrefetchAbort" => Exception::PrefetchAbort,
+                "DataAbort" => Exception::DataAbort,
+                "Irq" => Exception::Irq,
+                _ => {
+                    return parse::Error::new(
+                        exception_name.span().into(),
+                        "This is not a valid exception name",
+                    )
+                    .to_compile_error()
+                    .into();
+                }
+            }
         }
-        Kind::Interrupt => "IrqHandler".to_string(),
-    };
-
-    let exn = match exception_name.as_str() {
-        "UndefinedHandler" => Exception::UndefinedHandler,
-        "SvcHandler" => Exception::SvcHandler,
-        "PrefetchHandler" => Exception::PrefetchHandler,
-        "AbortHandler" => Exception::AbortHandler,
-        "IrqHandler" => Exception::IrqHandler,
-        _ => {
-            return parse::Error::new(f.sig.ident.span(), "This is not a valid exception name")
-                .to_compile_error()
-                .into();
-        }
+        Kind::Interrupt => Exception::Irq,
     };
 
     let returns_never = match f.sig.output {
@@ -265,10 +266,10 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
     let ident = &f.sig.ident;
     let (ref cfgs, ref attrs) = extract_cfgs(f.attrs.clone());
 
-    let handler = match exn {
+    let handler = match exception {
         // extern "C" fn _undefined_handler(addr: usize) -> !;
         // extern "C" fn _undefined_handler(addr: usize) -> usize;
-        Exception::UndefinedHandler => {
+        Exception::Undefined => {
             let tramp_ident = Ident::new("__cortex_ar_rt_undefined_handler", Span::call_site());
             if returns_never {
                 quote!(
@@ -290,20 +291,20 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                         #ident(addr)
                     }
 
-                    #[allow(non_snake_case)]
                     #f
                 )
             }
         }
-        // extern "C" fn _prefetch_handler(addr: usize) -> !;
-        // extern "C" fn _prefetch_handler(addr: usize) -> usize;
-        Exception::PrefetchHandler => {
-            let tramp_ident = Ident::new("__cortex_ar_rt_prefetch_handler", Span::call_site());
+        // extern "C" fn _prefetch_abort_handler(addr: usize) -> !;
+        // extern "C" fn _prefetch_abort_handler(addr: usize) -> usize;
+        Exception::PrefetchAbort => {
+            let tramp_ident =
+                Ident::new("__cortex_ar_rt_prefetch_abort_handler", Span::call_site());
             if returns_never {
                 quote!(
                     #(#cfgs)*
                     #(#attrs)*
-                    #[export_name = "_prefetch_handler"]
+                    #[export_name = "_prefetch_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> ! {
                         #ident(addr)
                     }
@@ -314,7 +315,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 quote!(
                     #(#cfgs)*
                     #(#attrs)*
-                    #[export_name = "_prefetch_handler"]
+                    #[export_name = "_prefetch_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
                         #ident(addr)
                     }
@@ -324,15 +325,15 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 )
             }
         }
-        // extern "C" fn _abort_handler(addr: usize) -> !;
-        // extern "C" fn _abort_handler(addr: usize) -> usize;
-        Exception::AbortHandler => {
-            let tramp_ident = Ident::new("__cortex_ar_rt_abort_handler", Span::call_site());
+        // extern "C" fn _data_abort_handler(addr: usize) -> !;
+        // extern "C" fn _data_abort_handler(addr: usize) -> usize;
+        Exception::DataAbort => {
+            let tramp_ident = Ident::new("__cortex_ar_rt_data_abort_handler", Span::call_site());
             if returns_never {
                 quote!(
                     #(#cfgs)*
                     #(#attrs)*
-                    #[export_name = "_abort_handler"]
+                    #[export_name = "_data_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> ! {
                         #ident(addr)
                     }
@@ -343,7 +344,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 quote!(
                     #(#cfgs)*
                     #(#attrs)*
-                    #[export_name = "_abort_handler"]
+                    #[export_name = "_data_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
                         #ident(addr)
                     }
@@ -354,7 +355,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
             }
         }
         // extern "C" fn _svc_handler(addr: usize);
-        Exception::SvcHandler => {
+        Exception::SupervisorCall => {
             let tramp_ident = Ident::new("__cortex_ar_rt_svc_handler", Span::call_site());
             quote!(
                 #(#cfgs)*
@@ -369,7 +370,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
             )
         }
         // extern "C" fn _irq_handler(addr: usize);
-        Exception::IrqHandler => {
+        Exception::Irq => {
             let tramp_ident = Ident::new("__cortex_ar_rt_irq_handler", Span::call_site());
             quote!(
                 #(#cfgs)*

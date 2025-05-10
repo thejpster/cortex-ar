@@ -49,12 +49,12 @@ core::arch::global_asm!(
 "#
 );
 
-#[exception(PrefetchHandler)]
-fn prefetch_handler(_addr: usize) -> ! {
+#[exception(PrefetchAbort)]
+fn prefetch_abort_handler(_addr: usize) -> ! {
     panic!("unexpected undefined exception");
 }
 
-#[exception(UndefinedHandler)]
+#[exception(Undefined)]
 fn undefined_handler(addr: usize) -> usize {
     println!("undefined abort occurred");
 
@@ -87,7 +87,7 @@ fn undefined_handler(addr: usize) -> usize {
     }
 }
 
-#[exception(AbortHandler)]
-fn abort_handler(_addr: usize) -> ! {
-    panic!("unexpected abort exception");
+#[exception(DataAbort)]
+fn data_abort_handler(_addr: usize) -> ! {
+    panic!("unexpected data abort exception");
 }
