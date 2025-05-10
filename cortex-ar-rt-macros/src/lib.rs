@@ -320,8 +320,8 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                     #[export_name = "_undefined_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
                         unsafe {
-                        #ident(addr)
-                    }
+                            #ident(addr)
+                        }
                     }
 
                     #f
@@ -351,8 +351,8 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                     #[export_name = "_prefetch_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
                         unsafe {
-                        #ident(addr)
-                    }
+                            #ident(addr)
+                        }
                     }
 
                     #f
@@ -381,11 +381,10 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                     #[export_name = "_data_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
                         unsafe {
-                        #ident(addr)
+                            #ident(addr)
                         }
                     }
 
-                    #[allow(non_snake_case)]
                     #f
                 )
             }
@@ -401,7 +400,6 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                     #ident(arg)
                 }
 
-                #[allow(non_snake_case)]
                 #f
             )
         }
@@ -416,7 +414,6 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                     #ident()
                 }
 
-                #[allow(non_snake_case)]
                 #f
             )
         }
