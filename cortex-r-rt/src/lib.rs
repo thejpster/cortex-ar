@@ -129,7 +129,7 @@
 //! ///
 //! /// Return `addr` to go back and execute the faulting instruction again.
 //! #[unsafe(no_mangle)]
-//! extern "C" fn _undefined_handler(addr: usize) -> usize {
+//! unsafe extern "C" fn _undefined_handler(addr: usize) -> usize {
 //!     // do stuff here, then return to the address *after* the one
 //!     // that failed
 //!     addr + 4
@@ -155,7 +155,7 @@
 //! use cortex_a_rt::exception;
 //!
 //! #[exception(Undefined)]
-//! fn my_handler(addr: usize) -> usize {
+//! unsafe fn my_handler(addr: usize) -> usize {
 //!     // do stuff here, then return the address to return to
 //!     addr + 4
 //! }
@@ -224,7 +224,7 @@
 //!
 //! ```rust
 //! #[unsafe(no_mangle)]
-//! extern "C" fn _prefetch_abort_handler(addr: usize) -> usize {
+//! unsafe extern "C" fn _prefetch_abort_handler(addr: usize) -> usize {
 //!     // do stuff, then go back to the instruction after the one that failed
 //!     addr + 4
 //! }
@@ -281,7 +281,7 @@
 //!
 //! ```rust
 //! #[unsafe(no_mangle)]
-//! extern "C" fn _data_abort_handler(addr: usize) -> usize {
+//! unsafe extern "C" fn _data_abort_handler(addr: usize) -> usize {
 //!     // do stuff, then go back to the instruction after the one that failed
 //!     addr + 4
 //! }
@@ -306,7 +306,7 @@
 //! use cortex_a_rt::exception;
 //!
 //! #[exception(DataAbort)]
-//! fn my_handler(addr: usize) -> usize {
+//! unsafe fn my_handler(addr: usize) -> usize {
 //!     // do stuff, then go back to the instruction after the one that failed
 //!     addr + 4
 //! }

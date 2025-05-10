@@ -55,7 +55,7 @@ fn undefined_handler(_addr: usize) -> ! {
 }
 
 #[exception(PrefetchAbort)]
-fn prefetch_abort_handler(addr: usize) -> usize {
+unsafe fn prefetch_abort_handler(addr: usize) -> usize {
     println!("prefetch abort occurred");
     let ifsr = Ifsr::read();
     println!("IFSR (Fault Status Register): {:?}", ifsr);

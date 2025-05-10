@@ -78,7 +78,7 @@ fn prefetch_abort_handler(_addr: usize) -> ! {
 }
 
 #[exception(DataAbort)]
-fn data_abort_handler(addr: usize) -> usize {
+unsafe fn data_abort_handler(addr: usize) -> usize {
     println!("data abort occurred");
     // If this is not disabled, reading DFAR will trigger an alignment fault on Armv8-R, leading
     // to a loop.

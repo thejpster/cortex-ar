@@ -218,6 +218,11 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
         return error;
     }
 
+    let returns_never = match f.sig.output {
+        ReturnType::Type(_, ref ty) => matches!(**ty, Type::Never(_)),
+        _ => false,
+    };
+
     let exception = match kind {
         Kind::Entry => {
             panic!("Don't handle #[entry] with `handle_exception_interrupt`!");
@@ -241,10 +246,40 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 .into();
             }
             match exception_name.to_string().as_str() {
-                "Undefined" => Exception::Undefined,
+                "Undefined" => {
+                    if !returns_never && f.sig.unsafety.is_none() {
+                        return parse::Error::new(
+                            exception_name.span().into(),
+                            "Undefined handlers that don't return ! must be unsafe",
+                        )
+                        .to_compile_error()
+                        .into();
+                    }
+                    Exception::Undefined
+                }
                 "SupervisorCall" => Exception::SupervisorCall,
-                "PrefetchAbort" => Exception::PrefetchAbort,
-                "DataAbort" => Exception::DataAbort,
+                "PrefetchAbort" => {
+                    if !returns_never && f.sig.unsafety.is_none() {
+                        return parse::Error::new(
+                            exception_name.span().into(),
+                            "PrefetchAbort handlers that don't return ! must be unsafe",
+                        )
+                        .to_compile_error()
+                        .into();
+                    }
+                    Exception::PrefetchAbort
+                }
+                "DataAbort" => {
+                    if !returns_never && f.sig.unsafety.is_none() {
+                        return parse::Error::new(
+                            exception_name.span().into(),
+                            "DataAbort handlers that don't return ! must be unsafe",
+                        )
+                        .to_compile_error()
+                        .into();
+                    }
+                    Exception::DataAbort
+                }
                 "Irq" => Exception::Irq,
                 _ => {
                     return parse::Error::new(
@@ -259,16 +294,12 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
         Kind::Interrupt => Exception::Irq,
     };
 
-    let returns_never = match f.sig.output {
-        ReturnType::Type(_, ref ty) => matches!(**ty, Type::Never(_)),
-        _ => false,
-    };
     let ident = &f.sig.ident;
     let (ref cfgs, ref attrs) = extract_cfgs(f.attrs.clone());
 
     let handler = match exception {
         // extern "C" fn _undefined_handler(addr: usize) -> !;
-        // extern "C" fn _undefined_handler(addr: usize) -> usize;
+        // unsafe extern "C" fn _undefined_handler(addr: usize) -> usize;
         Exception::Undefined => {
             let tramp_ident = Ident::new("__cortex_ar_rt_undefined_handler", Span::call_site());
             if returns_never {
@@ -288,7 +319,9 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                     #(#attrs)*
                     #[export_name = "_undefined_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
+                        unsafe {
                         #ident(addr)
+                    }
                     }
 
                     #f
@@ -296,7 +329,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
             }
         }
         // extern "C" fn _prefetch_abort_handler(addr: usize) -> !;
-        // extern "C" fn _prefetch_abort_handler(addr: usize) -> usize;
+        // unsafe extern "C" fn _prefetch_abort_handler(addr: usize) -> usize;
         Exception::PrefetchAbort => {
             let tramp_ident =
                 Ident::new("__cortex_ar_rt_prefetch_abort_handler", Span::call_site());
@@ -317,16 +350,17 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                     #(#attrs)*
                     #[export_name = "_prefetch_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
+                        unsafe {
                         #ident(addr)
                     }
+                    }
 
-                    #[allow(non_snake_case)]
                     #f
                 )
             }
         }
         // extern "C" fn _data_abort_handler(addr: usize) -> !;
-        // extern "C" fn _data_abort_handler(addr: usize) -> usize;
+        // unsafe extern "C" fn _data_abort_handler(addr: usize) -> usize;
         Exception::DataAbort => {
             let tramp_ident = Ident::new("__cortex_ar_rt_data_abort_handler", Span::call_site());
             if returns_never {
@@ -346,7 +380,9 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                     #(#attrs)*
                     #[export_name = "_data_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
+                        unsafe {
                         #ident(addr)
+                        }
                     }
 
                     #[allow(non_snake_case)]

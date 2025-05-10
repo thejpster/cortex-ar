@@ -55,7 +55,7 @@ fn prefetch_abort_handler(_addr: usize) -> ! {
 }
 
 #[exception(Undefined)]
-fn undefined_handler(addr: usize) -> usize {
+unsafe fn undefined_handler(addr: usize) -> usize {
     println!("undefined abort occurred");
 
     if (addr + 1) == udf_from_t32 as usize {
