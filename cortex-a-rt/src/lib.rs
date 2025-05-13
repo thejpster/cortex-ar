@@ -221,7 +221,8 @@
 //! }
 //! ```
 //!   
-//! Or it can return the address to return to:
+//! Or it can return an address where execution should resume after the
+//! Exception handler is complete (which is unsafe):
 //!
 //! ```rust
 //! #[unsafe(no_mangle)]
@@ -232,8 +233,8 @@
 //! ```
 //!
 //! You can create a `_prefetch_abort_handler` function by using the
-//! `#[exception(PrefetchAbort)]` macro on an unsafe Rust function with the
-//! appropriate arguments and return type.
+//! `#[exception(PrefetchAbort)]` macro on a Rust function with the appropriate
+//! arguments and return type.
 //!
 //! ```rust
 //! use cortex_a_rt::exception;
@@ -278,7 +279,8 @@
 //! }
 //! ```
 //!   
-//! Or it can return the address to return to:
+//! Or it can return an address where execution should resume after the
+//! Exception handler is complete (which is unsafe):
 //!
 //! ```rust
 //! #[unsafe(no_mangle)]
@@ -289,8 +291,8 @@
 //! ```
 //!
 //! You can create a `_data_abort_handler` function by using the
-//! `#[exception(DataAbort)]` macro on an unsafe Rust function with the
-//! appropriate arguments and return type.
+//! `#[exception(DataAbort)]` macro on a Rust function with the appropriate
+//! arguments and return type.
 //!
 //! ```rust
 //! use cortex_a_rt::exception;
