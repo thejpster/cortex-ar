@@ -365,39 +365,43 @@
 //! These are the naked 'raw' assembly functions the run-time requires:
 //!
 //! * `_start` - a Reset handler. Our linker script PROVIDEs a default function
-//!   at `_default_start` but you can override it. Some SoCs require a chip
-//!   specific startup for tasks like MMU initialization or chip specific
-//!   initialization routines, so if our start-up routine doesn't work for you,
-//!   supply your own `_start` function (but feel free to call our
-//!   `_default_start` as part of it).
+//!   at `_default_start` but you can override it. The provided default start
+//!   function will initialise all global variables and then call `kmain` in SYS
+//!   mode. Some SoCs require a chip specific startup for tasks like MMU
+//!   initialization or chip specific initialization routines, so if our
+//!   start-up routine doesn't work for you, supply your own `_start` function
+//!   (but feel free to call our `_default_start` as part of it).
 //!
 //! * `_asm_undefined_handler` - a naked function to call when an Undefined
 //!   Exception occurs. Our linker script PROVIDEs a default function at
 //!   `_asm_default_undefined_handler` but you can override it. The provided
-//!   default handler will call `_undefined_handler`, saving state as required.
+//!   default handler will call `_undefined_handler` in UND mode, saving state
+//!   as required.
 //!
-//! * `_asm_svc_handler` - a naked function to call when an SVC Exception
-//!   occurs. Our linker script PROVIDEs a default function at
+//! * `_asm_svc_handler` - a naked function to call when an Supervisor Call
+//!   (SVC) Exception occurs. Our linker script PROVIDEs a default function at
 //!   `_asm_default_svc_handler` but you can override it. The provided default
-//!   handler will call `_svc_handler`, saving state as required.
+//!   handler will call `_svc_handler` in SVC mode, saving state as required.
 //!
 //! * `_asm_prefetch_abort_handler` - a naked function to call when a Prefetch
-//!   Exception occurs. Our linker script PROVIDEs a default function at
+//!   Abort Exception occurs. Our linker script PROVIDEs a default function at
 //!   `_asm_default_prefetch_abort_handler` but you can override it. The
 //!   provided default handler will call `_prefetch_abort_handler`, saving state
-//!   as required. Note that Prefetch Abort Exceptions are handled in Abort
-//!   Mode, Monitor Mode or Hyp Mode, depending on CPU configuration. There is
-//!   no Prefetch Abort mode, so there is no Prefetch Abort Mode stack.
+//!   as required. Note that Prefetch Abort Exceptions are handled in Abort Mode
+//!   (ABT), Monitor Mode (MON) or Hyp Mode (HYP), depending on CPU
+//!   configuration.
 //!
-//! * `_asm_data_abort_handler` - a naked function to call when an Abort
+//! * `_asm_data_abort_handler` - a naked function to call when a Data Abort
 //!   Exception occurs. Our linker script PROVIDEs a default function at
 //!   `_asm_default_data_abort_handler` but you can override it. The provided
-//!   default handler will call `_data_abort_handler`, saving state as required.
+//!   default handler will call `_data_abort_handler` in ABT mode, saving state
+//!   as required.
 //!
 //! * `_asm_irq_handler` - a naked function to call when an Undefined Exception
 //!   occurs. Our linker script PROVIDEs a default function at
 //!   `_asm_default_irq_handler` but you can override it. The provided default
-//!   handler will call `_irq_handler`, saving state as required.
+//!   handler will call `_irq_handler` in SYS mode (not IRQ mode), saving state
+//!   as required.
 //!
 //! * `_asm_fiq_handler` - a naked function to call when a Fast Interrupt
 //!   Request (FIQ) occurs. Our linker script PROVIDEs a default function at
