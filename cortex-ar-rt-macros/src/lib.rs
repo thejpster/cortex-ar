@@ -143,6 +143,7 @@ impl std::fmt::Display for Exception {
 /// You get something like:
 ///
 /// ```rust
+/// #[doc(hidden)]
 /// #[export_name = "_undefined_handler"]
 /// pub unsafe extern "C" fn __cortex_ar_rt_undefined_handler(addr: usize) -> ! {
 ///     foo(addr)
@@ -182,6 +183,7 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
 /// You get something like:
 ///
 /// ```rust
+/// #[doc(hidden)]
 /// #[export_name = "_irq_handler"]
 /// pub unsafe extern "C" fn __cortex_ar_rt_irq_handler(addr: usize) -> ! {
 ///     foo(addr)
@@ -306,6 +308,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 quote!(
                     #(#cfgs)*
                     #(#attrs)*
+                    #[doc(hidden)]
                     #[export_name = "_undefined_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> ! {
                         #ident(addr)
@@ -317,6 +320,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 quote!(
                     #(#cfgs)*
                     #(#attrs)*
+                    #[doc(hidden)]
                     #[export_name = "_undefined_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
                         unsafe {
@@ -337,6 +341,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 quote!(
                     #(#cfgs)*
                     #(#attrs)*
+                    #[doc(hidden)]
                     #[export_name = "_prefetch_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> ! {
                         #ident(addr)
@@ -348,6 +353,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 quote!(
                     #(#cfgs)*
                     #(#attrs)*
+                    #[doc(hidden)]
                     #[export_name = "_prefetch_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
                         unsafe {
@@ -367,6 +373,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 quote!(
                     #(#cfgs)*
                     #(#attrs)*
+                    #[doc(hidden)]
                     #[export_name = "_data_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> ! {
                         #ident(addr)
@@ -378,6 +385,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
                 quote!(
                     #(#cfgs)*
                     #(#attrs)*
+                    #[doc(hidden)]
                     #[export_name = "_data_abort_handler"]
                     pub unsafe extern "C" fn #tramp_ident(addr: usize) -> usize {
                         unsafe {
@@ -395,6 +403,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
             quote!(
                 #(#cfgs)*
                 #(#attrs)*
+                #[doc(hidden)]
                 #[export_name = "_svc_handler"]
                 pub unsafe extern "C" fn #tramp_ident(arg: u32) {
                     #ident(arg)
@@ -409,6 +418,7 @@ fn handle_exception_interrupt(args: TokenStream, input: TokenStream, kind: Kind)
             quote!(
                 #(#cfgs)*
                 #(#attrs)*
+                #[doc(hidden)]
                 #[export_name = "_irq_handler"]
                 pub unsafe extern "C" fn #tramp_ident() {
                     #ident()
