@@ -19,7 +19,7 @@ arm-gic = { git = "https://github.com/google/arm-gic.git", rev = "46a8fc1720f5c2
 critical-section = "1.2.0"
 
 [build-dependencies]
-arm-targets = {version = "0.1.0", path = "../../arm-targets"}
+arm-targets = {version = "0.2.0", path = "../../arm-targets"}
 
 [features]
 eabi-fpu = ["cortex-r-rt/eabi-fpu"]
