@@ -28,10 +28,10 @@ pub trait GenericTimer {
     ///
     /// Note that speculative reads are allowed and reads may occur out of
     /// order. Add ISB and DSB fences before/after this call as required.
-    fn counter(&mut self) -> u64;
+    fn counter(&self) -> u64;
 
     /// Get the counter compare value.
-    fn counter_compare(&mut self) -> u64;
+    fn counter_compare(&self) -> u64;
 
     /// Set the counter compare value.
     ///

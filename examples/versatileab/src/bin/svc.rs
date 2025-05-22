@@ -4,14 +4,14 @@
 #![no_main]
 
 // pull in our start-up code
-use versatileab as _;
+use versatileab::rt::{entry, exception};
 
 use semihosting::println;
 
-versatileab::entry_point!();
-
-/// The main function of our Rust application.
-#[export_name = "main"]
+/// The entry-point to the Rust application.
+///
+/// It is called by the start-up.
+#[entry]
 fn main() -> ! {
     let x = 1;
     let y = x + 1;
@@ -23,9 +23,9 @@ fn main() -> ! {
 }
 
 /// This is our SVC exception handler
-#[no_mangle]
-unsafe extern "C" fn _svc_handler(arg: u32) {
-    println!("In _svc_handler, with arg={:#06x}", arg);
+#[exception(SupervisorCall)]
+fn svc_handler(arg: u32) {
+    println!("In svc_handler, with arg={:#06x}", arg);
     if arg == 0xABCDEF {
         // test nested SVC calls
         cortex_ar::svc!(0x456789);

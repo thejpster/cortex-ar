@@ -63,94 +63,112 @@ impl El1Mpu {
         })
     }
 
-    /// Configure the EL1 MPU
-    pub fn configure(&mut self, config: &Config) -> Result<(), Error> {
-        if config.regions.len() > self.num_regions() as usize {
+    /// Write a single region to the EL1 MPU
+    ///
+    /// ## Arguments
+    ///
+    /// - `region`: The [Region] object containing the configuration for the MPU region.
+    /// - `idx`: The index of the region to be configured.
+    ///
+    /// ## Errors
+    ///
+    /// Returns:
+    /// - [Error::UnalignedRegion] if the region's start address is not 64-byte aligned.
+    /// - [Error::UnalignedRegion] if the region's end address is not 63-byte aligned.
+    /// - [Error::InvalidMair] if the region's MAIR index is invalid (greater than 7).
+    pub fn set_region(&mut self, idx: u8, region: &Region) -> Result<(), Error> {
+        let start = *(region.range.start()) as usize as u32;
+        // Check for 64-byte alignment (0x3F is six bits)
+        if start & 0x3F != 0 {
+            return Err(Error::UnalignedRegion(region.range.clone()));
+        }
+        let end = *(region.range.end()) as usize as u32;
+        if end & 0x3F != 0x3F {
+            return Err(Error::UnalignedRegion(region.range.clone()));
+        }
+        if region.mair > 7 {
+            return Err(Error::InvalidMair(region.mair));
+        }
+        register::Prselr::write(register::Prselr(idx as u32));
+        register::Prbar::write({
+            let mut bar = register::Prbar::new_with_raw_value(0);
+            bar.set_base(u26::from_u32(start >> 6));
+            bar.set_access_perms(region.access);
+            bar.set_nx(region.no_exec);
+            bar.set_shareability(region.shareability);
+            bar
+        });
+        register::Prlar::write({
+            let mut lar = register::Prlar::new_with_raw_value(0);
+            lar.set_limit(u26::from_u32(end >> 6));
+            lar.set_enabled(region.enable);
+            lar.set_mair(u3::from_u8(region.mair));
+            lar
+        });
+
+        Ok(())
+    }
+
+    /// Writes a subset of EL1 MPU regions starting from a specified index.
+    ///
+    /// ## Arguments
+    ///
+    /// - `regions_starting_idx`: The starting index for the regions to be reconfigured.
+    /// - `regions`: A slice of [Region] objects that will overwrite the previous regions starting from `regions_starting_idx`.
+    pub fn set_regions(
+        &mut self,
+        regions_starting_idx: u8,
+        regions: &[Region],
+    ) -> Result<(), Error> {
+        if regions.len().saturating_add(regions_starting_idx as usize) > self.num_regions() as usize
+        {
             return Err(Error::TooManyRegions);
         }
-        for (idx, region) in config.regions.iter().enumerate() {
-            let start = *(region.range.start()) as usize as u32;
-            // Check for 64-byte alignment (0x3F is six bits)
-            if start & 0x3F != 0 {
-                return Err(Error::UnalignedRegion(region.range.clone()));
-            }
-            let end = *(region.range.end()) as usize as u32;
-            if end & 0x3F != 0x3F {
-                return Err(Error::UnalignedRegion(region.range.clone()));
-            }
-            if region.mair > 7 {
-                return Err(Error::InvalidMair(region.mair));
-            }
-            register::Prselr::write(register::Prselr(idx as u32));
-            register::Prbar::write({
-                let mut bar = register::Prbar::new_with_raw_value(0);
-                bar.set_base(u26::from_u32(start >> 6));
-                bar.set_access_perms(region.access);
-                bar.set_nx(region.no_exec);
-                bar.set_shareability(region.shareability);
-                bar
-            });
-            register::Prlar::write({
-                let mut lar = register::Prlar::new_with_raw_value(0);
-                lar.set_limit(u26::from_u32(end >> 6));
-                lar.set_enabled(region.enable);
-                lar.set_mair(u3::from_u8(region.mair));
-                lar
-            });
+
+        for (idx, region) in regions.iter().enumerate() {
+            self.set_region(idx as u8 + regions_starting_idx, region)?;
         }
 
-        let mem_attr0 = config
-            .memory_attributes
-            .get(0)
-            .map(|m| m.to_bits())
-            .unwrap_or(0) as u32;
-        let mem_attr1 = config
-            .memory_attributes
-            .get(1)
-            .map(|m| m.to_bits())
-            .unwrap_or(0) as u32;
-        let mem_attr2 = config
-            .memory_attributes
-            .get(2)
-            .map(|m| m.to_bits())
-            .unwrap_or(0) as u32;
-        let mem_attr3 = config
-            .memory_attributes
-            .get(3)
-            .map(|m| m.to_bits())
-            .unwrap_or(0) as u32;
+        Ok(())
+    }
+
+    /// Set the memory attributes to MAIR0 and MAIR1
+    pub fn set_attributes(&mut self, memattrs: &[MemAttr]) {
+        let mem_attr0 = memattrs.get(0).map(|m| m.to_bits()).unwrap_or(0) as u32;
+        let mem_attr1 = memattrs.get(1).map(|m| m.to_bits()).unwrap_or(0) as u32;
+        let mem_attr2 = memattrs.get(2).map(|m| m.to_bits()).unwrap_or(0) as u32;
+        let mem_attr3 = memattrs.get(3).map(|m| m.to_bits()).unwrap_or(0) as u32;
         let mair0 = mem_attr3 << 24 | mem_attr2 << 16 | mem_attr1 << 8 | mem_attr0;
         unsafe {
             register::Mair0::write(register::Mair0(mair0));
         }
-        let mem_attr0 = config
-            .memory_attributes
-            .get(4)
-            .map(|m| m.to_bits())
-            .unwrap_or(0) as u32;
-        let mem_attr1 = config
-            .memory_attributes
-            .get(5)
-            .map(|m| m.to_bits())
-            .unwrap_or(0) as u32;
-        let mem_attr2 = config
-            .memory_attributes
-            .get(6)
-            .map(|m| m.to_bits())
-            .unwrap_or(0) as u32;
-        let mem_attr3 = config
-            .memory_attributes
-            .get(7)
-            .map(|m| m.to_bits())
-            .unwrap_or(0) as u32;
+        let mem_attr0 = memattrs.get(4).map(|m| m.to_bits()).unwrap_or(0) as u32;
+        let mem_attr1 = memattrs.get(5).map(|m| m.to_bits()).unwrap_or(0) as u32;
+        let mem_attr2 = memattrs.get(6).map(|m| m.to_bits()).unwrap_or(0) as u32;
+        let mem_attr3 = memattrs.get(7).map(|m| m.to_bits()).unwrap_or(0) as u32;
         let mair1 = mem_attr3 << 24 | mem_attr2 << 16 | mem_attr1 << 8 | mem_attr0;
         unsafe {
             register::Mair1::write(register::Mair1(mair1));
         }
+    }
 
+    /// Enable or disable the background region
+    pub fn background_region_enable(&mut self, enable: bool) {
         register::Sctlr::modify(|r| {
-            r.set_br(config.background_config);
+            r.set_br(enable);
         });
+    }
+
+    /// Configure the EL1 MPU
+    ///
+    /// Write regions, attributes and enable/disable the background region with a single [Config] struct.
+    pub fn configure(&mut self, config: &Config) -> Result<(), Error> {
+        self.set_regions(0, config.regions)?;
+
+        self.set_attributes(config.memory_attributes);
+
+        self.background_region_enable(config.background_config);
+
         Ok(())
     }
 

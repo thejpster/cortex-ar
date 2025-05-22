@@ -16,6 +16,7 @@ version = "0.1.0"
 
 [dependencies]
 cortex-ar = {version = "0.1.0", path = "../cortex-ar"}
+cortex-ar-rt-macros = { path = "../cortex-ar-rt-macros", version = "=0.1.0" }
 
 [features]
 # Enable the FPU on start-up, even on a soft-float EABI target
@@ -26,3 +27,6 @@ vfp-dp = []
 
 [build-dependencies]
 arm-targets = {version = "0.1.0", path = "../arm-targets"}
+
+[package.metadata.docs.rs]
+targets = ["armv7a-none-eabihf"]

@@ -1,7 +1,8 @@
 /*
 Basic Cortex-R linker script.
 
-You must supply a file called `memory.x` which defines the memory regions 'CODE' and 'DATA'.
+You must supply a file called `memory.x` which defines the memory regions
+'VECTORS', 'CODE' and 'DATA'.
 
 The stack pointer(s) will be (near) the top of the DATA region by default.
 
@@ -10,15 +11,17 @@ Based upon the linker script from https://github.com/rust-embedded/cortex-m
 
 INCLUDE memory.x
 
-ENTRY(_vector_table);
+ENTRY(_start);
 EXTERN(_vector_table);
+EXTERN(_start);
 
 SECTIONS {
-    .text : {
+    .vector_table ORIGIN(VECTORS) : {
         /* The vector table must come first */
         *(.vector_table)
-        /* Our exception handling routines */
-        *(.text.handlers)
+    } > VECTORS
+
+    .text : {
         /* Now the rest of the code */
         *(.text .text*)
     } > CODE
@@ -72,34 +75,39 @@ SECTIONS {
 }
 
 /*
-We reserve some space at the top of the RAM for our stacks. We have an IRQ stack
-and a FIQ stack, plus the remainder is our system stack.
+We reserve some space at the top of the RAM for our exception stacks. The
+remainder is our system mode stack.
 
 You must keep _stack_top and the stack sizes aligned to eight byte boundaries.
 */
 PROVIDE(_stack_top = ORIGIN(DATA) + LENGTH(DATA));
-PROVIDE(_fiq_stack_size = 0x400);
-PROVIDE(_irq_stack_size = 0x1000);
-PROVIDE(_abt_stack_size = 0x400);
+PROVIDE(_hyp_stack_size = 0x400);
 PROVIDE(_und_stack_size = 0x400);
-PROVIDE(_svc_stack_size = 0x1000);
+PROVIDE(_svc_stack_size = 0x400);
+PROVIDE(_abt_stack_size = 0x400);
+PROVIDE(_irq_stack_size = 0x400);
+PROVIDE(_fiq_stack_size = 0x400);
 
 ASSERT(_stack_top % 8 == 0, "ERROR(cortex-r-rt): top of stack is not 8-byte aligned");
-ASSERT(_fiq_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of FIQ stack is not 8-byte aligned");
-ASSERT(_irq_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of IRQ stack is not 8-byte aligned");
-ASSERT(_fiq_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of FIQ stack is not 8-byte aligned");
-ASSERT(_abt_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of ABT stack is not 8-byte aligned");
 ASSERT(_und_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of UND stack is not 8-byte aligned");
 ASSERT(_svc_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of SVC stack is not 8-byte aligned");
+ASSERT(_abt_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of ABT stack is not 8-byte aligned");
+ASSERT(_irq_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of IRQ stack is not 8-byte aligned");
+ASSERT(_fiq_stack_size % 8 == 0, "ERROR(cortex-r-rt): size of FIQ stack is not 8-byte aligned");
 
-PROVIDE(_asm_undefined_handler =_asm_default_handler);
-PROVIDE(_asm_prefetch_handler  =_asm_default_handler);
-PROVIDE(_asm_abort_handler     =_asm_default_handler);
-PROVIDE(_asm_fiq_handler       =_asm_default_fiq_handler);
+/* Weak aliases for ASM default handlers */
+PROVIDE(_start                      = _default_start);
+PROVIDE(_asm_undefined_handler      = _asm_default_undefined_handler);
+PROVIDE(_asm_svc_handler            = _asm_default_svc_handler);
+PROVIDE(_asm_prefetch_abort_handler = _asm_default_prefetch_abort_handler);
+PROVIDE(_asm_data_abort_handler     = _asm_default_data_abort_handler);
+PROVIDE(_asm_irq_handler            = _asm_default_irq_handler);
+PROVIDE(_asm_fiq_handler            = _asm_default_fiq_handler);
 
-PROVIDE(_undefined_handler     =_default_handler);
-PROVIDE(_abort_handler         =_default_handler);
-PROVIDE(_prefetch_handler      =_default_handler);
-PROVIDE(_irq_handler           =_default_handler);
-PROVIDE(_svc_handler           =_default_handler);
-PROVIDE(_start                 =_default_start);
+/* Weak aliases for C default handlers */
+PROVIDE(_undefined_handler      = _default_handler);
+PROVIDE(_svc_handler            = _default_handler);
+PROVIDE(_prefetch_abort_handler = _default_handler);
+PROVIDE(_data_abort_handler     = _default_handler);
+PROVIDE(_irq_handler            = _default_handler);
+/* There is no default C-language FIQ handler */

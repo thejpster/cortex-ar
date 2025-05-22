@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - General support for the Cortex-A architecture.
+- New `sev` function in ASM module.
+- Compiler fences for `dsb` and `isb`
+- Added `nomem`, `nostack` and `preserves_flags` options for ASM where applicable.
 
 ## [v0.1.0]
 

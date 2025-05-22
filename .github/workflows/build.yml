@@ -102,8 +102,10 @@ jobs:
           cargo build
 
   # Build the workspace for the target architecture but using nightly to compile libcore
+  # Technically it doens't need 'setup' but it makes the graph look nicer
   build-tier3:
     runs-on: ubuntu-24.04
+    needs: setup
     strategy:
       matrix:
         target:
@@ -292,15 +294,24 @@ jobs:
         run: |
           cargo test --manifest-path cortex-ar/Cargo.toml
 
-  # Run some programs in QEMU
+  # Run some programs in QEMU 9
   qemu-test:
     runs-on: ubuntu-24.04
     needs: [build-all]
     steps:
-      - run: sudo apt-get -y update && sudo apt-get -y install qemu-system-arm
       - name: Checkout
         uses: actions/checkout@v4
-      - run: ./tests.sh
+      - name: Install Dependencies
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install libpixman-1-0 libfdt1 libglib2.0-0t64
+      - name: Install custom QEMU into /opt
+        run: |
+          curl -sSL https://github.com/jonathanpallant/qemu9-for-ubuntu-2404/releases/download/qemu-9.2.3%2Bbuild0/qemu-9.2.3-ubuntu-24.04.tar.gz | sudo tar xvzf - -C /
+      - name: Run tests in QEMU
+        run: |
+          export PATH=/opt/qemu/bin:$PATH
+          ./tests.sh
 
   # Gather all the above xxx-all jobs together for the purposes of getting an overall pass-fail
   all:
