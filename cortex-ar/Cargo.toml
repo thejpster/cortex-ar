@@ -1,7 +1,7 @@
 [package]
 authors = [
     "Jonathan Pallant <jonathan.pallant@ferrous-systems.com>",
-    "The Cortex-R Team <cortex-r@teams.rust-embedded.org>",
+    "The Embedded Devices Working Group Arm Team <arm@teams.rust-embedded.org>",
 ]
 categories = [
     "embedded",

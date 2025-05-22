@@ -1,5 +1,5 @@
 [package]
-authors = ["Jonathan Pallant <jonathan.pallant@ferrous-systems.com>", "The Cortex-R Team <cortex-r@teams.rust-embedded.org>"]
+authors = ["Jonathan Pallant <jonathan.pallant@ferrous-systems.com>", "The Embedded Devices Working Group Arm Team <arm@teams.rust-embedded.org>"]
 default-run = "hello"
 edition = "2021"
 name = "mps3-an536"
