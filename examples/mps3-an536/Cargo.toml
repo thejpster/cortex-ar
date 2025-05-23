@@ -1,15 +1,19 @@
 [package]
-authors = ["Jonathan Pallant <jonathan.pallant@ferrous-systems.com>", "The Embedded Devices Working Group Arm Team <arm@teams.rust-embedded.org>"]
+authors = [
+	"Jonathan Pallant <jonathan.pallant@ferrous-systems.com>",
+	"The Embedded Devices Working Group Arm Team <arm@teams.rust-embedded.org>"
+]
 default-run = "hello"
-edition = "2021"
-name = "mps3-an536"
 description = "Examples for MPS3-AN536 device (Arm Cortex-R)"
+edition = "2021"
+homepage = "https://github.com/rust-embedded/cortex-ar.git"
 license = "MIT OR Apache-2.0"
+name = "mps3-an536"
+publish = false
 readme = "README.md"
 repository = "https://github.com/rust-embedded/cortex-ar.git"
-homepage = "https://github.com/rust-embedded/cortex-ar.git"
 rust-version = "1.82"
-version = "0.1.0"
+version = "0.0.0"
 
 [dependencies]
 cortex-ar = { path = "../../cortex-ar", features = ["critical-section-multi-core"] }
